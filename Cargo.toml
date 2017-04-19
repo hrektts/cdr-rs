@@ -1,0 +1,21 @@
+[package]
+name = "cdr"
+version = "0.1.0"
+authors = ["Katsutoshi Horie <mps299792458@gmail.com>"]
+description = """
+A serialization/deserialization implementation for Common Data Representation
+"""
+repository = "https://github.com/hrektts/cdr"
+readme = "README.md"
+keywords = ["encode", "decode", "serialize", "deserialize"]
+license = "MIT/Apache-2.0"
+
+[badges]
+travis-ci = { repository = "hrektts/cdr-rs" }
+
+[dependencies]
+byteorder = "1"
+serde = "0.9"
+
+[dev-dependencies]
+serde_derive = "0.9"

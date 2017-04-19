@@ -1,0 +1,16 @@
+language: rust
+cache: cargo
+rust:
+  - stable
+  - beta
+  - nightly
+sudo: false
+before_script:
+  - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+  - cargo install -f rustfmt
+script:
+  - cargo fmt -- --write-mode=diff
+  - cargo build
+  - cargo test
+  - rustdoc --test README.md -L target/debug -L target/debug/deps
+  - cargo doc --no-deps
