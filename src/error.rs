@@ -1,16 +1,16 @@
-use std::error;
-use std::fmt;
-use std::io;
-use std::result;
+use std;
+use std::fmt::{self, Display};
 
 use serde::{de, ser};
 
+pub type Result<T> = std::result::Result<T, Error>;
+
 pub type Error = Box<ErrorKind>;
 
-impl error::Error for Error {
+impl std::error::Error for Error {
     fn description(&self) -> &str {
         match **self {
-            ErrorKind::Io(ref err) => error::Error::description(err),
+            ErrorKind::Io(ref err) => std::error::Error::description(err),
             _ => {
                 // If you want a better message, use Display::fmt or to_string().
                 "CDR error"
@@ -18,12 +18,12 @@ impl error::Error for Error {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&std::error::Error> {
         unimplemented!();
     }
 }
 
-impl fmt::Display for Error {
+impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match **self {
             ErrorKind::Io(ref err) => fmt::Display::fmt(err, f),
@@ -38,8 +38,8 @@ impl fmt::Display for Error {
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(err: io::Error) -> Self {
+impl From<std::io::Error> for Error {
+    fn from(err: std::io::Error) -> Self {
         ErrorKind::Io(err).into()
     }
 }
@@ -58,12 +58,10 @@ impl ser::Error for Error {
 
 #[derive(Debug)]
 pub enum ErrorKind {
-    Io(io::Error),
+    Io(std::io::Error),
     Message(String),
     NumberOutOfRange,
     SequenceMustHaveLength,
     SizeLimit,
     TypeNotSupported,
 }
-
-pub type Result<T> = result::Result<T, Error>;

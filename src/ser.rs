@@ -1,14 +1,13 @@
-use std::u32;
+use std;
 use std::io::Write;
 use std::marker::PhantomData;
-use std::mem;
 
 use byteorder::{ByteOrder, WriteBytesExt};
 use serde::ser;
-use super::encapsulation::Encapsulation;
-use super::error::{Error, ErrorKind, Result};
-use super::size::{calc_serialized_size, calc_serialized_size_bounded, Infinite,
-                  SizeLimit};
+
+use encapsulation::Encapsulation;
+use error::{Error, ErrorKind, Result};
+use size::{calc_serialized_size, calc_serialized_size_bounded, Infinite, SizeLimit};
 
 pub struct Serializer<W, C> {
     writer: W,
@@ -41,11 +40,11 @@ impl<W, C> Serializer<W, C>
 
     fn set_pos_of<T>(&mut self) -> Result<()> {
         self.write_padding_of::<T>()
-            .and_then(|_| self.add_pos((mem::size_of::<T>()) as u64))
+            .and_then(|_| self.add_pos((std::mem::size_of::<T>()) as u64))
     }
 
     fn write_padding_of<T>(&mut self) -> Result<()> {
-        let alignment = mem::size_of::<T>();
+        let alignment = std::mem::size_of::<T>();
         let padding = [0; 8];
         self.pos %= 8;
         match (self.pos as usize) % alignment {
@@ -62,7 +61,7 @@ impl<W, C> Serializer<W, C>
     }
 
     fn write_usize_as_u32(&mut self, v: usize) -> Result<()> {
-        if v > u32::MAX as usize {
+        if v > std::u32::MAX as usize {
             return Err(Box::new(ErrorKind::NumberOutOfRange));
         }
 
@@ -205,10 +204,10 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     #[inline]
     fn serialize_unit_variant(self,
                               _name: &'static str,
-                              variant_index: usize,
+                              variant_index: u32,
                               _variant: &'static str)
                               -> Result<Self::Ok> {
-        self.write_usize_as_u32(variant_index)
+        self.serialize_u32(variant_index)
     }
 
     #[inline]
@@ -224,13 +223,13 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     #[inline]
     fn serialize_newtype_variant<T: ?Sized>(self,
                                             _name: &'static str,
-                                            variant_index: usize,
+                                            variant_index: u32,
                                             _variant: &'static str,
                                             value: &T)
                                             -> Result<Self::Ok>
         where T: ser::Serialize
     {
-        self.write_usize_as_u32(variant_index)
+        self.serialize_u32(variant_index)
             .and_then(|_| value.serialize(self))
     }
 
@@ -238,11 +237,6 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         let len = len.ok_or(ErrorKind::SequenceMustHaveLength)?;
         self.write_usize_as_u32(len)?;
-        Ok(Compound { ser: self })
-    }
-
-    #[inline]
-    fn serialize_seq_fixed_size(self, _size: usize) -> Result<Self::SerializeSeq> {
         Ok(Compound { ser: self })
     }
 
@@ -262,11 +256,11 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     #[inline]
     fn serialize_tuple_variant(self,
                                _name: &'static str,
-                               variant_index: usize,
+                               variant_index: u32,
                                _variant: &'static str,
                                _len: usize)
                                -> Result<Self::SerializeTupleVariant> {
-        self.write_usize_as_u32(variant_index)?;
+        self.serialize_u32(variant_index)?;
         Ok(Compound { ser: self })
     }
 
@@ -286,11 +280,11 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     #[inline]
     fn serialize_struct_variant(self,
                                 _name: &'static str,
-                                variant_index: usize,
+                                variant_index: u32,
                                 _variant: &'static str,
                                 _len: usize)
                                 -> Result<Self::SerializeStructVariant> {
-        self.write_usize_as_u32(variant_index)?;
+        self.serialize_u32(variant_index)?;
         Ok(Compound { ser: self })
     }
 }

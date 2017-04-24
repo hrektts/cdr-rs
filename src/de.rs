@@ -1,12 +1,9 @@
-use std::cmp;
+use std;
 use std::io::Read;
 use std::marker::PhantomData;
-use std::mem;
-use std::str;
 
 use byteorder::{ByteOrder, ReadBytesExt};
-use serde::de;
-use serde::de::value::ValueDeserializer;
+use serde::de::{self, IntoDeserializer};
 use super::encapsulation::{CdrBe, CdrLe, Encapsulation, PlCdrBe, PlCdrLe};
 use super::error::{Error, ErrorKind, Result};
 use super::size::{Infinite, SizeLimit};
@@ -36,7 +33,7 @@ impl<R, S, C> Deserializer<R, S, C>
     }
 
     fn read_padding_of<T>(&mut self) -> Result<()> {
-        let alignment = mem::size_of::<T>();
+        let alignment = std::mem::size_of::<T>();
         let mut padding = [0; 8];
         self.pos %= 8;
         match (self.pos as usize) % alignment {
@@ -60,7 +57,7 @@ impl<R, S, C> Deserializer<R, S, C>
     }
 
     fn read_size_of<T>(&mut self) -> Result<()> {
-        self.read_size(mem::size_of::<T>() as u64)
+        self.read_size(std::mem::size_of::<T>() as u64)
     }
 
     fn read_string(&mut self) -> Result<String> {
@@ -74,7 +71,7 @@ impl<R, S, C> Deserializer<R, S, C>
             let mut result = Vec::new();
             let mut offset = 0;
             while len > 0 {
-                let reserve = cmp::min(len as usize, BLOCK_SIZE);
+                let reserve = std::cmp::min(len as usize, BLOCK_SIZE);
                 self.read_size(reserve as u64)
                     .and_then(|_| Ok(result.resize(offset + reserve, 0)))
                     .and_then(|_| {
@@ -98,7 +95,7 @@ impl<R, S, C> Deserializer<R, S, C>
     }
 }
 
-impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
+impl<'a, 'de, R, S, C> de::Deserializer<'de> for &'a mut Deserializer<R, S, C>
     where R: Read,
           S: SizeLimit,
           C: Encapsulation,
@@ -107,14 +104,14 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     type Error = Error;
 
     #[inline]
-    fn deserialize<V>(self, _visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+    fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
+        where V: de::Visitor<'de>
     {
         Err(Box::new(ErrorKind::Message("not supported".into())))
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         de::Deserialize::deserialize(self).and_then(|value: u8| match value {
                                                         1 => visitor.visit_bool(true),
@@ -126,14 +123,14 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_size_of::<u8>()
             .and_then(|_| visitor.visit_u8(self.reader.read_u8()?))
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<u16>()
             .and_then(|_| self.read_size_of::<u16>())
@@ -141,7 +138,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<u32>()
             .and_then(|_| self.read_size_of::<u32>())
@@ -149,7 +146,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<u64>()
             .and_then(|_| self.read_size_of::<u64>())
@@ -157,14 +154,14 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_size_of::<i8>()
             .and_then(|_| visitor.visit_i8(self.reader.read_i8()?))
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<i16>()
             .and_then(|_| self.read_size_of::<i16>())
@@ -172,7 +169,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<i32>()
             .and_then(|_| self.read_size_of::<i32>())
@@ -180,7 +177,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<i64>()
             .and_then(|_| self.read_size_of::<i64>())
@@ -188,7 +185,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<f32>()
             .and_then(|_| self.read_size_of::<f32>())
@@ -196,7 +193,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.read_padding_of::<f64>()
             .and_then(|_| self.read_size_of::<f64>())
@@ -204,7 +201,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         let mut buf = [0u8; 4];
         self.reader
@@ -224,7 +221,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
             .and_then(|width| {
                 self.read_size(width as u64)?;
                 let c =
-                    str::from_utf8(&buf[..width])
+                    std::str::from_utf8(&buf[..width])
                         .ok()
                         .and_then(|s| s.chars().next())
                         .ok_or(Box::new(ErrorKind::Message("invalid char encoding"
@@ -234,37 +231,37 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_str(&self.read_string()?)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_string(self.read_string()?)
     }
 
     fn deserialize_bytes<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_bytes(&self.read_vec()?)
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_byte_buf(self.read_vec()?)
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         Err(Box::new(ErrorKind::TypeNotSupported))
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_unit()
     }
@@ -273,7 +270,7 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
                                   _name: &'static str,
                                   visitor: V)
                                   -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_unit()
     }
@@ -282,27 +279,32 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
                                      _name: &'static str,
                                      visitor: V)
                                      -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         visitor.visit_newtype_struct(self)
     }
 
     fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         de::Deserialize::deserialize(&mut *self)
-            .and_then(|len: u32| self.deserialize_seq_fixed_size(len as usize, visitor))
+            .and_then(|len: u32| self.deserialize_tuple(len as usize, visitor))
     }
 
-    fn deserialize_seq_fixed_size<V>(self, len: usize, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+    fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
+        where V: de::Visitor<'de>
     {
-        struct SeqVisitor<'a, R: Read + 'a, S: SizeLimit + 'a, C: Encapsulation + 'a> {
+        struct Access<'a, R: 'a, S: 'a, C: 'a>
+            where R: Read,
+                  S: SizeLimit,
+                  C: Encapsulation,
+                  C::E: ByteOrder
+        {
             deserializer: &'a mut Deserializer<R, S, C>,
             len: usize,
         }
 
-        impl<'a, R: 'a, S, C> de::SeqVisitor for SeqVisitor<'a, R, S, C>
+        impl<'a, 'de, R: 'a, S, C> de::SeqAccess<'de> for Access<'a, R, S, C>
             where R: Read,
                   S: SizeLimit,
                   C: Encapsulation,
@@ -310,8 +312,8 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
         {
             type Error = Error;
 
-            fn visit_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-                where T: de::DeserializeSeed
+            fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+                where T: de::DeserializeSeed<'de>
             {
                 if self.len > 0 {
                     self.len -= 1;
@@ -324,38 +326,10 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
             }
         }
 
-        visitor.visit_seq(SeqVisitor {
+        visitor.visit_seq(Access {
                               deserializer: self,
                               len: len,
                           })
-    }
-
-    fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
-    {
-        struct TupleVisitor<'a, R: 'a, S: 'a, C: 'a>(&'a mut Deserializer<R, S, C>)
-            where R: Read,
-                  S: SizeLimit,
-                  C: Encapsulation,
-                  C::E: ByteOrder;
-
-        impl<'a, R: 'a, S, C> de::SeqVisitor for TupleVisitor<'a, R, S, C>
-            where R: Read,
-                  S: SizeLimit,
-                  C: Encapsulation,
-                  C::E: ByteOrder
-        {
-            type Error = Error;
-
-            fn visit_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
-                where T: de::DeserializeSeed
-            {
-                let value = de::DeserializeSeed::deserialize(seed, &mut *self.0)?;
-                Ok(Some(value))
-            }
-        }
-
-        visitor.visit_seq(TupleVisitor(self))
     }
 
     fn deserialize_tuple_struct<V>(self,
@@ -363,13 +337,13 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
                                    len: usize,
                                    visitor: V)
                                    -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.deserialize_tuple(len, visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         Err(Box::new(ErrorKind::TypeNotSupported))
     }
@@ -379,15 +353,9 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
                              fields: &'static [&'static str],
                              visitor: V)
                              -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         self.deserialize_tuple(fields.len(), visitor)
-    }
-
-    fn deserialize_struct_field<V>(self, _visitor: V) -> Result<V::Value>
-        where V: de::Visitor
-    {
-        Err(Box::new(ErrorKind::TypeNotSupported))
     }
 
     fn deserialize_enum<V>(self,
@@ -395,9 +363,9 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
                            _variants: &'static [&'static str],
                            visitor: V)
                            -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
-        impl<'a, R: 'a, S, C> de::EnumVisitor for &'a mut Deserializer<R, S, C>
+        impl<'a, 'de, R: 'a, S, C> de::EnumAccess<'de> for &'a mut Deserializer<R, S, C>
             where R: Read,
                   S: SizeLimit,
                   C: Encapsulation,
@@ -406,8 +374,8 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
             type Error = Error;
             type Variant = Self;
 
-            fn visit_variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
-                where V: de::DeserializeSeed
+            fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
+                where V: de::DeserializeSeed<'de>
             {
                 let idx: u32 = de::Deserialize::deserialize(&mut *self)?;
                 let val: Result<_> = seed.deserialize(idx.into_deserializer());
@@ -418,14 +386,20 @@ impl<'a, R, S, C> de::Deserializer for &'a mut Deserializer<R, S, C>
         visitor.visit_enum(self)
     }
 
+    fn deserialize_identifier<V>(self, _visitor: V) -> Result<V::Value>
+        where V: de::Visitor<'de>
+    {
+        Err(Box::new(ErrorKind::TypeNotSupported))
+    }
+
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+        where V: de::Visitor<'de>
     {
         Err(Box::new(ErrorKind::TypeNotSupported))
     }
 }
 
-impl<'a, R, S, C> de::VariantVisitor for &'a mut Deserializer<R, S, C>
+impl<'a, 'de, R, S, C> de::VariantAccess<'de> for &'a mut Deserializer<R, S, C>
     where R: Read,
           S: SizeLimit,
           C: Encapsulation,
@@ -433,27 +407,27 @@ impl<'a, R, S, C> de::VariantVisitor for &'a mut Deserializer<R, S, C>
 {
     type Error = Error;
 
-    fn visit_unit(self) -> Result<()> {
+    fn unit_variant(self) -> Result<()> {
         Ok(())
     }
 
-    fn visit_newtype_seed<T>(self, seed: T) -> Result<T::Value>
-        where T: de::DeserializeSeed
+    fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value>
+        where T: de::DeserializeSeed<'de>
     {
         de::DeserializeSeed::deserialize(seed, self)
     }
 
-    fn visit_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
-        where V: de::Visitor
+    fn tuple_variant<V>(self, len: usize, visitor: V) -> Result<V::Value>
+        where V: de::Visitor<'de>
     {
         de::Deserializer::deserialize_tuple(self, len, visitor)
     }
 
-    fn visit_struct<V>(self,
-                       fields: &'static [&'static str],
-                       visitor: V)
-                       -> Result<V::Value>
-        where V: de::Visitor
+    fn struct_variant<V>(self,
+                         fields: &'static [&'static str],
+                         visitor: V)
+                         -> Result<V::Value>
+        where V: de::Visitor<'de>
     {
         de::Deserializer::deserialize_tuple(self, fields.len(), visitor)
     }
@@ -517,16 +491,16 @@ const UTF8_CHAR_WIDTH: &'static [u8; 256] = &[
     4,4,4,4, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 0xFF
 ];
 
-pub fn deserialize<T>(bytes: &[u8]) -> Result<T>
-    where T: de::Deserialize
+pub fn deserialize<'de, T>(bytes: &[u8]) -> Result<T>
+    where T: de::Deserialize<'de>
 {
     let mut reader = bytes;
     deserialize_from::<_, _, _>(&mut reader, Infinite)
 }
 
-pub fn deserialize_from<R, T, S>(reader: &mut R, size_limit: S) -> Result<T>
+pub fn deserialize_from<'de, R, T, S>(reader: &mut R, size_limit: S) -> Result<T>
     where R: Read,
-          T: de::Deserialize,
+          T: de::Deserialize<'de>,
           S: SizeLimit
 {
     use super::encapsulation::ENCAPSULATION_HEADER_SIZE;

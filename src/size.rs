@@ -1,5 +1,4 @@
-use std::mem;
-use std::u32;
+use std;
 
 use serde::ser;
 use super::error::{Error, ErrorKind, Result};
@@ -81,7 +80,7 @@ impl<S> SizeChecker<S>
     }
 
     fn add_padding_of<T>(&mut self) -> Result<()> {
-        let alignment = mem::size_of::<T>();
+        let alignment = std::mem::size_of::<T>();
         self.pos %= 8;
         match self.pos % alignment {
             0 => Ok(()),
@@ -99,7 +98,7 @@ impl<S> SizeChecker<S>
     }
 
     fn add_usize_as_u32(&mut self, v: usize) -> Result<()> {
-        if v > u32::MAX as usize {
+        if v > std::u32::MAX as usize {
             return Err(Box::new(ErrorKind::NumberOutOfRange));
         }
 
@@ -108,7 +107,7 @@ impl<S> SizeChecker<S>
 
     fn add_value<T>(&mut self, _v: T) -> Result<()> {
         self.add_padding_of::<T>()?;
-        self.add_size(mem::size_of::<T>() as u64)
+        self.add_size(std::mem::size_of::<T>() as u64)
     }
 }
 
@@ -223,10 +222,10 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     #[inline]
     fn serialize_unit_variant(self,
                               _name: &'static str,
-                              variant_index: usize,
+                              variant_index: u32,
                               _variant: &'static str)
                               -> Result<Self::Ok> {
-        self.add_usize_as_u32(variant_index)
+        self.serialize_u32(variant_index)
     }
 
     #[inline]
@@ -242,13 +241,13 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     #[inline]
     fn serialize_newtype_variant<T: ?Sized>(self,
                                             _name: &'static str,
-                                            variant_index: usize,
+                                            variant_index: u32,
                                             _variant: &'static str,
                                             value: &T)
                                             -> Result<Self::Ok>
         where T: ser::Serialize
     {
-        self.add_usize_as_u32(variant_index)
+        self.serialize_u32(variant_index)
             .and_then(|_| value.serialize(self))
     }
 
@@ -256,11 +255,6 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         let len = len.ok_or(ErrorKind::SequenceMustHaveLength)?;
         self.add_usize_as_u32(len)?;
-        Ok(SizeCompound { ser: self })
-    }
-
-    #[inline]
-    fn serialize_seq_fixed_size(self, _size: usize) -> Result<Self::SerializeSeq> {
         Ok(SizeCompound { ser: self })
     }
 
@@ -280,11 +274,11 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     #[inline]
     fn serialize_tuple_variant(self,
                                _name: &'static str,
-                               variant_index: usize,
+                               variant_index: u32,
                                _variant: &'static str,
                                _len: usize)
                                -> Result<Self::SerializeTupleVariant> {
-        self.add_usize_as_u32(variant_index)?;
+        self.serialize_u32(variant_index)?;
         Ok(SizeCompound { ser: self })
     }
 
@@ -304,11 +298,11 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     #[inline]
     fn serialize_struct_variant(self,
                                 _name: &'static str,
-                                variant_index: usize,
+                                variant_index: u32,
                                 _variant: &'static str,
                                 _len: usize)
                                 -> Result<Self::SerializeStructVariant> {
-        self.add_usize_as_u32(variant_index)?;
+        self.serialize_u32(variant_index)?;
         Ok(SizeCompound { ser: self })
     }
 }

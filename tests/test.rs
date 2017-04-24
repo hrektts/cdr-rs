@@ -12,8 +12,8 @@ use cdr::{Bounded, CdrBe, CdrLe, ErrorKind, Infinite, PlCdrBe, PlCdrLe, Result};
 
 const ENCAPSULATION_HEADER_SIZE: u64 = 4;
 
-fn check<T>(element: T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn check<'de, T>(element: T, maybe_size: Option<u64>)
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     if let Some(size) = maybe_size {
         assert!(size >= ENCAPSULATION_HEADER_SIZE);
@@ -25,8 +25,8 @@ fn check<T>(element: T, maybe_size: Option<u64>)
     check_size_limit(&element, maybe_size);
 }
 
-fn check_serialized_size<T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn check_serialized_size<'de, T>(element: &T, maybe_size: Option<u64>)
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     if let Some(serialized_size) = maybe_size {
         let size = cdr::calc_serialized_size(&element);
@@ -34,8 +34,8 @@ fn check_serialized_size<T>(element: &T, maybe_size: Option<u64>)
     }
 }
 
-fn check_round_trip<T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn check_round_trip<'de, T>(element: &T, maybe_size: Option<u64>)
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     let size = match maybe_size {
         Some(v) => v as u64,
@@ -71,8 +71,8 @@ fn check_round_trip<T>(element: &T, maybe_size: Option<u64>)
     }
 }
 
-fn check_capacity_shortage<T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn check_capacity_shortage<'de, T>(element: &T, maybe_size: Option<u64>)
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     let bound = calc_invalid_size(element, maybe_size);
     let mut buf = [0u8; 2000];
@@ -86,8 +86,8 @@ fn check_capacity_shortage<T>(element: &T, maybe_size: Option<u64>)
                 .is_err());
 }
 
-fn check_size_limit<T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn check_size_limit<'de, T>(element: &T, maybe_size: Option<u64>)
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     let bound = calc_invalid_size(element, maybe_size);
 
@@ -117,8 +117,8 @@ fn check_size_limit<T>(element: &T, maybe_size: Option<u64>)
     }
 }
 
-fn calc_invalid_size<T>(element: &T, maybe_size: Option<u64>) -> u64
-    where T: serde::Serialize + serde::Deserialize + PartialEq + Debug
+fn calc_invalid_size<'de, T>(element: &T, maybe_size: Option<u64>) -> u64
+    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
 {
     match maybe_size {
         Some(v) if v > 0 => v - 1,
