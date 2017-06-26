@@ -13,7 +13,8 @@ use cdr::{Bounded, CdrBe, CdrLe, ErrorKind, Infinite, PlCdrBe, PlCdrLe, Result};
 const ENCAPSULATION_HEADER_SIZE: u64 = 4;
 
 fn check<'de, T>(element: T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     if let Some(size) = maybe_size {
         assert!(size >= ENCAPSULATION_HEADER_SIZE);
@@ -26,7 +27,8 @@ fn check<'de, T>(element: T, maybe_size: Option<u64>)
 }
 
 fn check_serialized_size<'de, T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     if let Some(serialized_size) = maybe_size {
         let size = cdr::calc_serialized_size(&element);
@@ -35,7 +37,8 @@ fn check_serialized_size<'de, T>(element: &T, maybe_size: Option<u64>)
 }
 
 fn check_round_trip<'de, T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     let size = match maybe_size {
         Some(v) => v as u64,
@@ -72,7 +75,8 @@ fn check_round_trip<'de, T>(element: &T, maybe_size: Option<u64>)
 }
 
 fn check_capacity_shortage<'de, T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     let bound = calc_invalid_size(element, maybe_size);
     let mut buf = [0u8; 2000];
@@ -80,14 +84,17 @@ fn check_capacity_shortage<'de, T>(element: &T, maybe_size: Option<u64>)
 
     assert!(cdr::serialize_into::<_, _, _, CdrBe>(&mut buf, &element, Infinite).is_err());
     assert!(cdr::serialize_into::<_, _, _, CdrLe>(&mut buf, &element, Infinite).is_err());
-    assert!(cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite)
-                .is_err());
-    assert!(cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite)
-                .is_err());
+    assert!(
+        cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite).is_err()
+    );
+    assert!(
+        cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite).is_err()
+    );
 }
 
 fn check_size_limit<'de, T>(element: &T, maybe_size: Option<u64>)
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     let bound = calc_invalid_size(element, maybe_size);
 
@@ -118,7 +125,8 @@ fn check_size_limit<'de, T>(element: &T, maybe_size: Option<u64>)
 }
 
 fn calc_invalid_size<'de, T>(element: &T, maybe_size: Option<u64>) -> u64
-    where T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug
+where
+    T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     match maybe_size {
         Some(v) if v > 0 => v - 1,
@@ -387,8 +395,10 @@ fn test_seq_bool() {
 #[test]
 fn test_seq_string() {
     check(Vec::<String>::new(), Some(4 + 4));
-    check(vec!["".to_string(), "a".to_string(), "b".to_string()],
-          Some(4 + 4 + 4 + 4 + 1 + 3 + 4 + 1));
+    check(
+        vec!["".to_string(), "a".to_string(), "b".to_string()],
+        Some(4 + 4 + 4 + 4 + 1 + 3 + 4 + 1),
+    );
 }
 
 #[test]
@@ -478,8 +488,10 @@ fn test_array_bool() {
 #[allow(const_err)]
 fn test_array_string() {
     check([] as [String; 0], Some(4 + 0));
-    check(["".to_string(), "a".to_string(), "b".to_string()],
-          Some(4 + 4 + 5 + 3 + 5));
+    check(
+        ["".to_string(), "a".to_string(), "b".to_string()],
+        Some(4 + 4 + 5 + 3 + 5),
+    );
 }
 
 #[test]
@@ -493,8 +505,10 @@ fn test_array_in_array() {
 fn test_tuple() {
     check((1u32), Some(4 + 4));
     check((1u32, 2i32), Some(4 + 4 + 4));
-    check((1u16, 2i16, 3.14f32, "hi".to_string()),
-          Some(4 + 2 + 2 + 4 + 6));
+    check(
+        (1u16, 2i16, 3.14f32, "hi".to_string()),
+        Some(4 + 2 + 2 + 4 + 6),
+    );
 }
 
 #[test]
@@ -513,14 +527,16 @@ fn test_struct() {
         s: String,
     }
 
-    check(S {
-              c: 'x',
-              n: -7,
-              b: true,
-              m: 17,
-              s: "hello".to_string(),
-          },
-          Some(4 + 33));
+    check(
+        S {
+            c: 'x',
+            n: -7,
+            b: true,
+            m: 17,
+            s: "hello".to_string(),
+        },
+        Some(4 + 33),
+    );
 }
 
 #[test]
@@ -550,12 +566,14 @@ fn test_struct_in_struct() {
         b: f32,
     }
 
-    check(Outer {
-              i: Inner1 { a: -3, b: 5 },
-              ii: Inner2 { a: false, b: 1.414 },
-              iii: Inner3 { a: 'a', b: 1.732 },
-          },
-          Some(4 + 40));
+    check(
+        Outer {
+            i: Inner1 { a: -3, b: 5 },
+            ii: Inner2 { a: false, b: 1.414 },
+            iii: Inner3 { a: 'a', b: 1.732 },
+        },
+        Some(4 + 40),
+    );
 }
 
 #[test]
@@ -568,8 +586,10 @@ fn test_enum() {
     }
 
     check(vec![E::One, E::Two, E::Three], Some(4 + 4 + 4 * 3));
-    check(vec![E::One as u32, E::Two as u32, E::Three as u32],
-          Some(4 + 4 + 4 * 3));
+    check(
+        vec![E::One as u32, E::Two as u32, E::Three as u32],
+        Some(4 + 4 + 4 * 3),
+    );
 }
 
 #[test]
@@ -589,13 +609,15 @@ fn test_union() {
 
     check(U::A(3), Some(4 + 4 + 4));
     check(U::B(1, 2, 3), Some(4 + 4 + 2 + 2 + 4 + 4 + 8));
-    check(U::C {
-              c: 'a',
-              n: 5,
-              b: true,
-              v: vec![1, 1, 2, 3, 5],
-          },
-          Some(4 + 4 + 1 + 3 + 4 + 1 + 3 + 4 + 5));
+    check(
+        U::C {
+            c: 'a',
+            n: 5,
+            b: true,
+            v: vec![1, 1, 2, 3, 5],
+        },
+        Some(4 + 4 + 1 + 3 + 4 + 1 + 3 + 4 + 5),
+    );
     check(U::D, Some(4 + 4));
 }
 
@@ -612,10 +634,14 @@ fn test_unsupported() {
 
     check_error_kind(cdr::serialize::<_, _, CdrBe>(&Some(1usize), Infinite));
     check_error_kind(cdr::serialize::<_, _, CdrBe>(&None::<usize>, Infinite));
-    check_error_kind(cdr::serialize::<_, _, CdrBe>(&HashMap::<usize, usize>::new(),
-                                                   Infinite));
-    check_error_kind(cdr::serialize::<_, _, CdrBe>(&BTreeMap::<usize, usize>::new(),
-                                                   Infinite));
+    check_error_kind(cdr::serialize::<_, _, CdrBe>(
+        &HashMap::<usize, usize>::new(),
+        Infinite,
+    ));
+    check_error_kind(cdr::serialize::<_, _, CdrBe>(
+        &BTreeMap::<usize, usize>::new(),
+        Infinite,
+    ));
 
     check_error_kind(cdr::deserialize::<Option<usize>>(&[0; 16]));
     check_error_kind(cdr::deserialize::<HashMap<usize, usize>>(&[0; 16]));

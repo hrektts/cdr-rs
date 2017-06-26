@@ -16,9 +16,10 @@ pub struct Serializer<W, C> {
 }
 
 impl<W, C> Serializer<W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     pub fn new(writer: W) -> Self {
         Self {
@@ -39,8 +40,9 @@ impl<W, C> Serializer<W, C>
     }
 
     fn set_pos_of<T>(&mut self) -> Result<()> {
-        self.write_padding_of::<T>()
-            .and_then(|_| self.add_pos((std::mem::size_of::<T>()) as u64))
+        self.write_padding_of::<T>().and_then(|_| {
+            self.add_pos((std::mem::size_of::<T>()) as u64)
+        })
     }
 
     fn write_padding_of<T>(&mut self) -> Result<()> {
@@ -52,9 +54,7 @@ impl<W, C> Serializer<W, C>
             n @ 1...7 => {
                 let amt = alignment - n;
                 self.pos += amt as u64;
-                self.writer
-                    .write_all(&padding[..amt])
-                    .map_err(Into::into)
+                self.writer.write_all(&padding[..amt]).map_err(Into::into)
             }
             _ => unreachable!(),
         }
@@ -70,9 +70,10 @@ impl<W, C> Serializer<W, C>
 }
 
 impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
@@ -86,72 +87,81 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
 
     #[inline]
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
-        self.set_pos_of::<bool>()
-            .and_then(|_| {
-                          self.writer
-                              .write_u8(if v { 1 } else { 0 })
-                              .map_err(Into::into)
-                      })
+        self.set_pos_of::<bool>().and_then(|_| {
+            self.writer.write_u8(if v { 1 } else { 0 }).map_err(
+                Into::into,
+            )
+        })
     }
 
     #[inline]
     fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.set_pos_of::<u8>()
-            .and_then(|_| self.writer.write_u8(v).map_err(Into::into))
+        self.set_pos_of::<u8>().and_then(|_| {
+            self.writer.write_u8(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.set_pos_of::<u16>()
-            .and_then(|_| self.writer.write_u16::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<u16>().and_then(|_| {
+            self.writer.write_u16::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.set_pos_of::<u32>()
-            .and_then(|_| self.writer.write_u32::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<u32>().and_then(|_| {
+            self.writer.write_u32::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        self.set_pos_of::<u64>()
-            .and_then(|_| self.writer.write_u64::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<u64>().and_then(|_| {
+            self.writer.write_u64::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        self.set_pos_of::<i8>()
-            .and_then(|_| self.writer.write_i8(v).map_err(Into::into))
+        self.set_pos_of::<i8>().and_then(|_| {
+            self.writer.write_i8(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.set_pos_of::<i16>()
-            .and_then(|_| self.writer.write_i16::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<i16>().and_then(|_| {
+            self.writer.write_i16::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.set_pos_of::<i32>()
-            .and_then(|_| self.writer.write_i32::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<i32>().and_then(|_| {
+            self.writer.write_i32::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.set_pos_of::<i64>()
-            .and_then(|_| self.writer.write_i64::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<i64>().and_then(|_| {
+            self.writer.write_i64::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.set_pos_of::<f32>()
-            .and_then(|_| self.writer.write_f32::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<f32>().and_then(|_| {
+            self.writer.write_f32::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
     fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.set_pos_of::<f64>()
-            .and_then(|_| self.writer.write_f64::<C::E>(v).map_err(Into::into))
+        self.set_pos_of::<f64>().and_then(|_| {
+            self.writer.write_f64::<C::E>(v).map_err(Into::into)
+        })
     }
 
     #[inline]
@@ -159,8 +169,9 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
         let mut buf = [0u8; 4];
         v.encode_utf8(&mut buf);
         let width = v.len_utf8();
-        self.add_pos(width as u64)
-            .and_then(|_| self.writer.write_all(&buf[..width]).map_err(Into::into))
+        self.add_pos(width as u64).and_then(|_| {
+            self.writer.write_all(&buf[..width]).map_err(Into::into)
+        })
     }
 
     #[inline]
@@ -186,7 +197,8 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
 
     #[inline]
     fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         Err(Box::new(ErrorKind::TypeNotSupported))
     }
@@ -202,35 +214,41 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     }
 
     #[inline]
-    fn serialize_unit_variant(self,
-                              _name: &'static str,
-                              variant_index: u32,
-                              _variant: &'static str)
-                              -> Result<Self::Ok> {
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<Self::Ok> {
         self.serialize_u32(variant_index)
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(self,
-                                           _name: &'static str,
-                                           value: &T)
-                                           -> Result<Self::Ok>
-        where T: ser::Serialize
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
     {
         value.serialize(self)
     }
 
     #[inline]
-    fn serialize_newtype_variant<T: ?Sized>(self,
-                                            _name: &'static str,
-                                            variant_index: u32,
-                                            _variant: &'static str,
-                                            value: &T)
-                                            -> Result<Self::Ok>
-        where T: ser::Serialize
+    fn serialize_newtype_variant<T: ?Sized>(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
     {
-        self.serialize_u32(variant_index)
-            .and_then(|_| value.serialize(self))
+        self.serialize_u32(variant_index).and_then(
+            |_| value.serialize(self),
+        )
     }
 
     #[inline]
@@ -246,20 +264,22 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     }
 
     #[inline]
-    fn serialize_tuple_struct(self,
-                              _name: &'static str,
-                              _len: usize)
-                              -> Result<Self::SerializeTupleStruct> {
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct> {
         Ok(Compound { ser: self })
     }
 
     #[inline]
-    fn serialize_tuple_variant(self,
-                               _name: &'static str,
-                               variant_index: u32,
-                               _variant: &'static str,
-                               _len: usize)
-                               -> Result<Self::SerializeTupleVariant> {
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant> {
         self.serialize_u32(variant_index)?;
         Ok(Compound { ser: self })
     }
@@ -270,20 +290,22 @@ impl<'a, W, C> ser::Serializer for &'a mut Serializer<W, C>
     }
 
     #[inline]
-    fn serialize_struct(self,
-                        _name: &'static str,
-                        _len: usize)
-                        -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct> {
         Ok(Compound { ser: self })
     }
 
     #[inline]
-    fn serialize_struct_variant(self,
-                                _name: &'static str,
-                                variant_index: u32,
-                                _variant: &'static str,
-                                _len: usize)
-                                -> Result<Self::SerializeStructVariant> {
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant> {
         self.serialize_u32(variant_index)?;
         Ok(Compound { ser: self })
     }
@@ -294,16 +316,18 @@ pub struct Compound<'a, W: 'a, C: 'a> {
 }
 
 impl<'a, W, C> ser::SerializeSeq for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -315,16 +339,18 @@ impl<'a, W, C> ser::SerializeSeq for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeTuple for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -336,16 +362,18 @@ impl<'a, W, C> ser::SerializeTuple for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeTupleStruct for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -357,16 +385,18 @@ impl<'a, W, C> ser::SerializeTupleStruct for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeTupleVariant for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -378,23 +408,26 @@ impl<'a, W, C> ser::SerializeTupleVariant for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeMap for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         key.serialize(&mut *self.ser)
     }
 
     #[inline]
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -406,16 +439,18 @@ impl<'a, W, C> ser::SerializeMap for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeStruct for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -427,16 +462,18 @@ impl<'a, W, C> ser::SerializeStruct for Compound<'a, W, C>
 }
 
 impl<'a, W, C> ser::SerializeStructVariant for Compound<'a, W, C>
-    where W: Write,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    W: Write,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -448,9 +485,10 @@ impl<'a, W, C> ser::SerializeStructVariant for Compound<'a, W, C>
 }
 
 pub fn serialize<T: ?Sized, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
-    where T: ser::Serialize,
-          S: SizeLimit,
-          C: Encapsulation
+where
+    T: ser::Serialize,
+    S: SizeLimit,
+    C: Encapsulation,
 {
     let mut writer = match size_limit.limit() {
         Some(limit) => {
@@ -467,14 +505,16 @@ pub fn serialize<T: ?Sized, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
     Ok(writer)
 }
 
-pub fn serialize_into<W: ?Sized, T: ?Sized, S, C>(writer: &mut W,
-                                                  value: &T,
-                                                  size_limit: S)
-                                                  -> Result<()>
-    where W: Write,
-          T: ser::Serialize,
-          S: SizeLimit,
-          C: Encapsulation
+pub fn serialize_into<W: ?Sized, T: ?Sized, S, C>(
+    writer: &mut W,
+    value: &T,
+    size_limit: S,
+) -> Result<()>
+where
+    W: Write,
+    T: ser::Serialize,
+    S: SizeLimit,
+    C: Encapsulation,
 {
     if let Some(limit) = size_limit.limit() {
         calc_serialized_size_bounded(value, limit)?;

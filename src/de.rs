@@ -18,10 +18,11 @@ pub struct Deserializer<R, S, C> {
 }
 
 impl<R, S, C> Deserializer<R, S, C>
-    where R: Read,
-          S: SizeLimit,
-          C: Encapsulation,
-          C::E: ByteOrder
+where
+    R: Read,
+    S: SizeLimit,
+    C: Encapsulation,
+    C::E: ByteOrder,
 {
     pub fn new(reader: R, size_limit: S) -> Self {
         Self {
@@ -40,12 +41,11 @@ impl<R, S, C> Deserializer<R, S, C>
             0 => Ok(()),
             n @ 1...7 => {
                 let amt = alignment - n;
-                self.read_size(amt as u64)
-                    .and_then(|_| {
-                                  self.reader
-                                      .read_exact(&mut padding[..amt])
-                                      .map_err(Into::into)
-                              })
+                self.read_size(amt as u64).and_then(|_| {
+                    self.reader.read_exact(&mut padding[..amt]).map_err(
+                        Into::into,
+                    )
+                })
             }
             _ => unreachable!(),
         }
@@ -75,15 +75,15 @@ impl<R, S, C> Deserializer<R, S, C>
                 self.read_size(reserve as u64)
                     .and_then(|_| Ok(result.resize(offset + reserve, 0)))
                     .and_then(|_| {
-                                  self.reader
-                                      .read_exact(&mut result[offset..])
-                                      .map_err(Into::into)
-                              })
+                        self.reader.read_exact(&mut result[offset..]).map_err(
+                            Into::into,
+                        )
+                    })
                     .and_then(|_| {
-                                  len -= reserve as u32;
-                                  offset += reserve;
-                                  Ok(())
-                              })?
+                        len -= reserve as u32;
+                        offset += reserve;
+                        Ok(())
+                    })?
             }
             Ok(result)
         })
@@ -492,16 +492,18 @@ const UTF8_CHAR_WIDTH: &'static [u8; 256] = &[
 ];
 
 pub fn deserialize<'de, T>(bytes: &[u8]) -> Result<T>
-    where T: de::Deserialize<'de>
+where
+    T: de::Deserialize<'de>,
 {
     let mut reader = bytes;
     deserialize_from::<_, _, _>(&mut reader, Infinite)
 }
 
 pub fn deserialize_from<'de, R, T, S>(reader: &mut R, size_limit: S) -> Result<T>
-    where R: Read,
-          T: de::Deserialize<'de>,
-          S: SizeLimit
+where
+    R: Read,
+    T: de::Deserialize<'de>,
+    S: SizeLimit,
 {
     use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
@@ -513,11 +515,14 @@ pub fn deserialize_from<'de, R, T, S>(reader: &mut R, size_limit: S) -> Result<T
     match v[1] {
         0 => de::Deserialize::deserialize(&mut deserializer),
         1 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, CdrLe>>::into(deserializer)),
+            &mut Into::<Deserializer<_, _, CdrLe>>::into(deserializer),
+        ),
         2 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, PlCdrBe>>::into(deserializer)),
+            &mut Into::<Deserializer<_, _, PlCdrBe>>::into(deserializer),
+        ),
         3 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, PlCdrLe>>::into(deserializer)),
+            &mut Into::<Deserializer<_, _, PlCdrLe>>::into(deserializer),
+        ),
         _ => Err(Box::new(ErrorKind::Message("unknown encapsulation".into()))),
     }
 }

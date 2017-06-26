@@ -70,7 +70,8 @@ pub struct SizeChecker<S> {
 }
 
 impl<S> SizeChecker<S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     pub fn new(counter: S) -> SizeChecker<S> {
         SizeChecker {
@@ -112,7 +113,8 @@ impl<S> SizeChecker<S>
 }
 
 impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
@@ -203,7 +205,8 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
 
     #[inline]
     fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         self.add_value(1 as u8)?;
         v.serialize(self)
@@ -220,35 +223,41 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     }
 
     #[inline]
-    fn serialize_unit_variant(self,
-                              _name: &'static str,
-                              variant_index: u32,
-                              _variant: &'static str)
-                              -> Result<Self::Ok> {
+    fn serialize_unit_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+    ) -> Result<Self::Ok> {
         self.serialize_u32(variant_index)
     }
 
     #[inline]
-    fn serialize_newtype_struct<T: ?Sized>(self,
-                                           _name: &'static str,
-                                           value: &T)
-                                           -> Result<Self::Ok>
-        where T: ser::Serialize
+    fn serialize_newtype_struct<T: ?Sized>(
+        self,
+        _name: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
     {
         value.serialize(self)
     }
 
     #[inline]
-    fn serialize_newtype_variant<T: ?Sized>(self,
-                                            _name: &'static str,
-                                            variant_index: u32,
-                                            _variant: &'static str,
-                                            value: &T)
-                                            -> Result<Self::Ok>
-        where T: ser::Serialize
+    fn serialize_newtype_variant<T: ?Sized>(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        value: &T,
+    ) -> Result<Self::Ok>
+    where
+        T: ser::Serialize,
     {
-        self.serialize_u32(variant_index)
-            .and_then(|_| value.serialize(self))
+        self.serialize_u32(variant_index).and_then(
+            |_| value.serialize(self),
+        )
     }
 
     #[inline]
@@ -264,20 +273,22 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     }
 
     #[inline]
-    fn serialize_tuple_struct(self,
-                              _name: &'static str,
-                              _len: usize)
-                              -> Result<Self::SerializeTupleStruct> {
+    fn serialize_tuple_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleStruct> {
         Ok(SizeCompound { ser: self })
     }
 
     #[inline]
-    fn serialize_tuple_variant(self,
-                               _name: &'static str,
-                               variant_index: u32,
-                               _variant: &'static str,
-                               _len: usize)
-                               -> Result<Self::SerializeTupleVariant> {
+    fn serialize_tuple_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeTupleVariant> {
         self.serialize_u32(variant_index)?;
         Ok(SizeCompound { ser: self })
     }
@@ -288,20 +299,22 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
     }
 
     #[inline]
-    fn serialize_struct(self,
-                        _name: &'static str,
-                        _len: usize)
-                        -> Result<Self::SerializeStruct> {
+    fn serialize_struct(
+        self,
+        _name: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStruct> {
         Ok(SizeCompound { ser: self })
     }
 
     #[inline]
-    fn serialize_struct_variant(self,
-                                _name: &'static str,
-                                variant_index: u32,
-                                _variant: &'static str,
-                                _len: usize)
-                                -> Result<Self::SerializeStructVariant> {
+    fn serialize_struct_variant(
+        self,
+        _name: &'static str,
+        variant_index: u32,
+        _variant: &'static str,
+        _len: usize,
+    ) -> Result<Self::SerializeStructVariant> {
         self.serialize_u32(variant_index)?;
         Ok(SizeCompound { ser: self })
     }
@@ -312,14 +325,16 @@ pub struct SizeCompound<'a, S: 'a> {
 }
 
 impl<'a, S> ser::SerializeSeq for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -331,14 +346,16 @@ impl<'a, S> ser::SerializeSeq for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeTuple for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -350,14 +367,16 @@ impl<'a, S> ser::SerializeTuple for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeTupleStruct for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -369,14 +388,16 @@ impl<'a, S> ser::SerializeTupleStruct for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeTupleVariant for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -388,21 +409,24 @@ impl<'a, S> ser::SerializeTupleVariant for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeMap for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         key.serialize(&mut *self.ser)
     }
 
     #[inline]
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -414,14 +438,16 @@ impl<'a, S> ser::SerializeMap for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeStruct for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -433,14 +459,16 @@ impl<'a, S> ser::SerializeStruct for SizeCompound<'a, S>
 }
 
 impl<'a, S> ser::SerializeStructVariant for SizeCompound<'a, S>
-    where S: SizeLimit
+where
+    S: SizeLimit,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-        where T: ser::Serialize
+    where
+        T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -452,7 +480,8 @@ impl<'a, S> ser::SerializeStructVariant for SizeCompound<'a, S>
 }
 
 pub fn calc_serialized_size<T: ?Sized>(value: &T) -> u64
-    where T: ser::Serialize
+where
+    T: ser::Serialize,
 {
     use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
@@ -469,7 +498,8 @@ pub fn calc_serialized_size<T: ?Sized>(value: &T) -> u64
 }
 
 pub fn calc_serialized_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u64>
-    where T: ser::Serialize
+where
+    T: ser::Serialize,
 {
     use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
 

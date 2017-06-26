@@ -57,13 +57,21 @@ mod tests {
 
     #[test]
     fn test_constant() {
-        assert_eq!(ENCAPSULATION_HEADER_SIZE,
-                   (CdrBe::id().len() + CdrBe::option().len()) as u64);
-        assert_eq!(ENCAPSULATION_HEADER_SIZE,
-                   (CdrLe::id().len() + CdrLe::option().len()) as u64);
-        assert_eq!(ENCAPSULATION_HEADER_SIZE,
-                   (PlCdrBe::id().len() + PlCdrBe::option().len()) as u64);
-        assert_eq!(ENCAPSULATION_HEADER_SIZE,
-                   (PlCdrLe::id().len() + PlCdrLe::option().len()) as u64);
+        assert_eq!(
+            ENCAPSULATION_HEADER_SIZE,
+            (CdrBe::id().len() + CdrBe::option().len()) as u64
+        );
+        assert_eq!(
+            ENCAPSULATION_HEADER_SIZE,
+            (CdrLe::id().len() + CdrLe::option().len()) as u64
+        );
+        assert_eq!(
+            ENCAPSULATION_HEADER_SIZE,
+            (PlCdrBe::id().len() + PlCdrBe::option().len()) as u64
+        );
+        assert_eq!(
+            ENCAPSULATION_HEADER_SIZE,
+            (PlCdrLe::id().len() + PlCdrLe::option().len()) as u64
+        );
     }
 }
