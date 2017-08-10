@@ -4,6 +4,8 @@ A serialization/deserialization implementation for Common Data Representation in
 
 [![Build Status](https://travis-ci.org/hrektts/cdr-rs.svg?branch=master)](https://travis-ci.org/hrektts/cdr-rs)
 
+[Documentation](https://katsutoshihorie.com/cdr-rs)
+
 ## Example
 
 ``` rust
