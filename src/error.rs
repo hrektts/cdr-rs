@@ -29,9 +29,7 @@ impl Display for Error {
             ErrorKind::Io(ref err) => fmt::Display::fmt(err, f),
             ErrorKind::Message(ref msg) => f.write_str(msg),
             ErrorKind::NumberOutOfRange => f.write_str("number out of range"),
-            ErrorKind::SequenceMustHaveLength => {
-                f.write_str("sequence or map has unknown size")
-            }
+            ErrorKind::SequenceMustHaveLength => f.write_str("sequence or map has unknown size"),
             ErrorKind::SizeLimit => f.write_str("size limit"),
             ErrorKind::TypeNotSupported => f.write_str("type not supported"),
         }

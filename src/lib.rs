@@ -16,5 +16,4 @@ pub mod ser;
 pub use ser::{serialize, serialize_into, Serializer};
 
 mod size;
-pub use size::{calc_serialized_size, calc_serialized_size_bounded, SizeLimit, Bounded,
-               Infinite};
+pub use size::{calc_serialized_size, calc_serialized_size_bounded, SizeLimit, Bounded, Infinite};

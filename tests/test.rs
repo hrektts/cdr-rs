@@ -84,12 +84,8 @@ where
 
     assert!(cdr::serialize_into::<_, _, _, CdrBe>(&mut buf, &element, Infinite).is_err());
     assert!(cdr::serialize_into::<_, _, _, CdrLe>(&mut buf, &element, Infinite).is_err());
-    assert!(
-        cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite).is_err()
-    );
-    assert!(
-        cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite).is_err()
-    );
+    assert!(cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite).is_err());
+    assert!(cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite).is_err());
 }
 
 fn check_size_limit<'de, T>(element: &T, maybe_size: Option<u64>)
