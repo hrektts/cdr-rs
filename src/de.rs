@@ -1,28 +1,26 @@
-use std;
-use std::io::Read;
-use std::marker::PhantomData;
+//! Deserializing CDR into Rust data types.
 
-use byteorder::{ByteOrder, ReadBytesExt};
+use std::{self, io::Read, marker::PhantomData};
+
+use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 use serde::de::{self, IntoDeserializer};
-use super::encapsulation::{CdrBe, CdrLe, Encapsulation, PlCdrBe, PlCdrLe};
-use super::error::{Error, ErrorKind, Result};
-use super::size::{Infinite, SizeLimit};
 
-const BLOCK_SIZE: usize = 65_536;
+use error::{Error, ErrorKind, Result};
+use size::{Infinite, SizeLimit};
 
-pub struct Deserializer<R, S, C> {
+/// A deserializer that reads bytes from a buffer.
+pub struct Deserializer<R, S, E> {
     reader: R,
     size_limit: S,
     pos: u64,
-    phantom: PhantomData<C>,
+    phantom: PhantomData<E>,
 }
 
-impl<R, S, C> Deserializer<R, S, C>
+impl<R, S, E> Deserializer<R, S, E>
 where
     R: Read,
     S: SizeLimit,
-    C: Encapsulation,
-    C::E: ByteOrder,
+    E: ByteOrder,
 {
     pub fn new(reader: R, size_limit: S) -> Self {
         Self {
@@ -41,11 +39,10 @@ where
             0 => Ok(()),
             n @ 1...7 => {
                 let amt = alignment - n;
-                self.read_size(amt as u64).and_then(|_| {
-                    self.reader.read_exact(&mut padding[..amt]).map_err(
-                        Into::into,
-                    )
-                })
+                self.read_size(amt as u64)?;
+                self.reader
+                    .read_exact(&mut padding[..amt])
+                    .map_err(Into::into)
             }
             _ => unreachable!(),
         }
@@ -61,160 +58,139 @@ where
     }
 
     fn read_string(&mut self) -> Result<String> {
-        String::from_utf8(self.read_vec()?).map_err(|_| {
-            ErrorKind::Message("error while decodint utf8 string".to_string()).into()
-        })
+        String::from_utf8(self.read_vec().map(|mut v| {
+            v.pop(); // removes a terminating null character
+            v
+        })?).map_err(|e| ErrorKind::InvalidUtf8Encoding(e.utf8_error()).into())
     }
 
     fn read_vec(&mut self) -> Result<Vec<u8>> {
-        de::Deserialize::deserialize(&mut *self).and_then(|mut len: u32| {
-            let mut result = Vec::new();
-            let mut offset = 0;
-            while len > 0 {
-                let reserve = std::cmp::min(len as usize, BLOCK_SIZE);
-                self.read_size(reserve as u64)
-                    .and_then(|_| Ok(result.resize(offset + reserve, 0)))
-                    .and_then(|_| {
-                        self.reader.read_exact(&mut result[offset..]).map_err(
-                            Into::into,
-                        )
-                    })
-                    .and_then(|_| {
-                        len -= reserve as u32;
-                        offset += reserve;
-                        Ok(())
-                    })?
-            }
-            Ok(result)
-        })
+        let len: u32 = de::Deserialize::deserialize(&mut *self)?;
+        let mut buf = Vec::with_capacity(len as usize);
+        unsafe { buf.set_len(len as usize) }
+        self.read_size(len as u64)?;
+        self.reader.read_exact(&mut buf[..])?;
+        Ok(buf)
     }
 
-    fn reset_pos(&mut self) -> Result<()> {
+    pub(crate) fn reset_pos(&mut self) {
         self.pos = 0;
-        Ok(())
     }
 }
 
-impl<'a, 'de, R, S, C> de::Deserializer<'de> for &'a mut Deserializer<R, S, C>
+impl<'de, 'a, R, S, E> de::Deserializer<'de> for &'a mut Deserializer<R, S, E>
 where
     R: Read,
     S: SizeLimit,
-    C: Encapsulation,
-    C::E: ByteOrder,
+    E: ByteOrder,
 {
     type Error = Error;
 
-    #[inline]
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Box::new(ErrorKind::Message("not supported".into())))
+        Err(ErrorKind::DeserializeAnyNotSupported.into())
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        de::Deserialize::deserialize(self).and_then(|value: u8| match value {
+        let value: u8 = de::Deserialize::deserialize(self)?;
+        match value {
             1 => visitor.visit_bool(true),
             0 => visitor.visit_bool(false),
-            _ => {
-                Err(Box::new(
-                    ErrorKind::Message("invalid u8 when decoding bool".into()),
-                ))
-            }
-        })
+            value => Err(ErrorKind::InvalidBoolEncoding(value).into()),
+        }
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_size_of::<u8>().and_then(|_| {
-            visitor.visit_u8(self.reader.read_u8()?)
-        })
+        self.read_size_of::<u8>()?;
+        visitor.visit_u8(self.reader.read_u8()?)
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u16>()
-            .and_then(|_| self.read_size_of::<u16>())
-            .and_then(|_| visitor.visit_u16(self.reader.read_u16::<C::E>()?))
+        self.read_padding_of::<u16>()?;
+        self.read_size_of::<u16>()?;
+        visitor.visit_u16(self.reader.read_u16::<E>()?)
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u32>()
-            .and_then(|_| self.read_size_of::<u32>())
-            .and_then(|_| visitor.visit_u32(self.reader.read_u32::<C::E>()?))
+        self.read_padding_of::<u32>()?;
+        self.read_size_of::<u32>()?;
+        visitor.visit_u32(self.reader.read_u32::<E>()?)
     }
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u64>()
-            .and_then(|_| self.read_size_of::<u64>())
-            .and_then(|_| visitor.visit_u64(self.reader.read_u64::<C::E>()?))
+        self.read_padding_of::<u64>()?;
+        self.read_size_of::<u64>()?;
+        visitor.visit_u64(self.reader.read_u64::<E>()?)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_size_of::<i8>().and_then(|_| {
-            visitor.visit_i8(self.reader.read_i8()?)
-        })
+        self.read_size_of::<i8>()?;
+        visitor.visit_i8(self.reader.read_i8()?)
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i16>()
-            .and_then(|_| self.read_size_of::<i16>())
-            .and_then(|_| visitor.visit_i16(self.reader.read_i16::<C::E>()?))
+        self.read_padding_of::<i16>()?;
+        self.read_size_of::<i16>()?;
+        visitor.visit_i16(self.reader.read_i16::<E>()?)
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i32>()
-            .and_then(|_| self.read_size_of::<i32>())
-            .and_then(|_| visitor.visit_i32(self.reader.read_i32::<C::E>()?))
+        self.read_padding_of::<i32>()?;
+        self.read_size_of::<i32>()?;
+        visitor.visit_i32(self.reader.read_i32::<E>()?)
     }
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i64>()
-            .and_then(|_| self.read_size_of::<i64>())
-            .and_then(|_| visitor.visit_i64(self.reader.read_i64::<C::E>()?))
+        self.read_padding_of::<i64>()?;
+        self.read_size_of::<i64>()?;
+        visitor.visit_i64(self.reader.read_i64::<E>()?)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<f32>()
-            .and_then(|_| self.read_size_of::<f32>())
-            .and_then(|_| visitor.visit_f32(self.reader.read_f32::<C::E>()?))
+        self.read_padding_of::<f32>()?;
+        self.read_size_of::<f32>()?;
+        visitor.visit_f32(self.reader.read_f32::<E>()?)
     }
 
     fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<f64>()
-            .and_then(|_| self.read_size_of::<f64>())
-            .and_then(|_| visitor.visit_f64(self.reader.read_f64::<C::E>()?))
+        self.read_padding_of::<f64>()?;
+        self.read_size_of::<f64>()?;
+        visitor.visit_f64(self.reader.read_f64::<E>()?)
     }
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
@@ -222,28 +198,15 @@ where
         V: de::Visitor<'de>,
     {
         let mut buf = [0u8; 4];
-        self.reader
-            .read_exact(&mut buf[..1])
-            .map_err(Into::into)
-            .and_then(|_| {
-                let width = utf8_char_width(buf[0]);
-                if 1 <= width {
-                    self.reader
-                        .read_exact(&mut buf[1..width])
-                        .map(|_| width)
-                        .map_err(Into::into)
-                } else {
-                    Err(Box::new(ErrorKind::Message("invalid char encoding".into())))
-                }
-            })
-            .and_then(|width| {
-                self.read_size(width as u64)?;
-                let c = std::str::from_utf8(&buf[..width])
-                    .ok()
-                    .and_then(|s| s.chars().next())
-                    .ok_or(Box::new(ErrorKind::Message("invalid char encoding".into())))?;
-                visitor.visit_char(c)
-            })
+        self.reader.read_exact(&mut buf[..1])?;
+
+        let width = utf8_char_width(buf[0]);
+        if width != 1 {
+            Err(ErrorKind::InvalidCharEncoding.into())
+        } else {
+            self.read_size(width as u64)?;
+            visitor.visit_char(buf[0] as char)
+        }
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
@@ -278,7 +241,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(Box::new(ErrorKind::TypeNotSupported))
+        Err(ErrorKind::TypeNotSupported.into())
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
@@ -306,34 +269,29 @@ where
     where
         V: de::Visitor<'de>,
     {
-        de::Deserialize::deserialize(&mut *self).and_then(
-            |len: u32| {
-                self.deserialize_tuple(len as usize, visitor)
-            },
-        )
+        let len: u32 = de::Deserialize::deserialize(&mut *self)?;
+        self.deserialize_tuple(len as usize, visitor)
     }
 
     fn deserialize_tuple<V>(self, len: usize, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        struct Access<'a, R: 'a, S: 'a, C: 'a>
+        struct Access<'a, R: 'a, S: 'a, E: 'a>
         where
             R: Read,
             S: SizeLimit,
-            C: Encapsulation,
-            C::E: ByteOrder,
+            E: ByteOrder,
         {
-            deserializer: &'a mut Deserializer<R, S, C>,
+            deserializer: &'a mut Deserializer<R, S, E>,
             len: usize,
         }
 
-        impl<'a, 'de, R: 'a, S, C> de::SeqAccess<'de> for Access<'a, R, S, C>
+        impl<'de, 'a, R: 'a, S, E> de::SeqAccess<'de> for Access<'a, R, S, E>
         where
             R: Read,
             S: SizeLimit,
-            C: Encapsulation,
-            C::E: ByteOrder,
+            E: ByteOrder,
         {
             type Error = Error;
 
@@ -348,6 +306,10 @@ where
                 } else {
                     Ok(None)
                 }
+            }
+
+            fn size_hint(&self) -> Option<usize> {
+                Some(self.len)
             }
         }
 
@@ -373,7 +335,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(Box::new(ErrorKind::TypeNotSupported))
+        Err(ErrorKind::TypeNotSupported.into())
     }
 
     fn deserialize_struct<V>(
@@ -397,12 +359,11 @@ where
     where
         V: de::Visitor<'de>,
     {
-        impl<'a, 'de, R: 'a, S, C> de::EnumAccess<'de> for &'a mut Deserializer<R, S, C>
+        impl<'de, 'a, R: 'a, S, E> de::EnumAccess<'de> for &'a mut Deserializer<R, S, E>
         where
             R: Read,
             S: SizeLimit,
-            C: Encapsulation,
-            C::E: ByteOrder,
+            E: ByteOrder,
         {
             type Error = Error;
             type Variant = Self;
@@ -413,7 +374,7 @@ where
             {
                 let idx: u32 = de::Deserialize::deserialize(&mut *self)?;
                 let val: Result<_> = seed.deserialize(idx.into_deserializer());
-                Ok((try!(val), self))
+                Ok((val?, self))
             }
         }
 
@@ -424,23 +385,26 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(Box::new(ErrorKind::TypeNotSupported))
+        Err(ErrorKind::TypeNotSupported.into())
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Box::new(ErrorKind::TypeNotSupported))
+        Err(ErrorKind::TypeNotSupported.into())
+    }
+
+    fn is_human_readable(&self) -> bool {
+        false
     }
 }
 
-impl<'a, 'de, R, S, C> de::VariantAccess<'de> for &'a mut Deserializer<R, S, C>
+impl<'de, 'a, R, S, E> de::VariantAccess<'de> for &'a mut Deserializer<R, S, E>
 where
     R: Read,
     S: SizeLimit,
-    C: Encapsulation,
-    C::E: ByteOrder,
+    E: ByteOrder,
 {
     type Error = Error;
 
@@ -470,31 +434,9 @@ where
     }
 }
 
-impl<R, S> From<Deserializer<R, S, CdrBe>> for Deserializer<R, S, CdrLe> {
-    fn from(t: Deserializer<R, S, CdrBe>) -> Self {
-        Deserializer::<R, S, CdrLe> {
-            reader: t.reader,
-            size_limit: t.size_limit,
-            pos: t.pos,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<R, S> From<Deserializer<R, S, CdrBe>> for Deserializer<R, S, PlCdrBe> {
-    fn from(t: Deserializer<R, S, CdrBe>) -> Self {
-        Deserializer::<R, S, PlCdrBe> {
-            reader: t.reader,
-            size_limit: t.size_limit,
-            pos: t.pos,
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<R, S> From<Deserializer<R, S, CdrBe>> for Deserializer<R, S, PlCdrLe> {
-    fn from(t: Deserializer<R, S, CdrBe>) -> Self {
-        Deserializer::<R, S, PlCdrLe> {
+impl<R, S> From<Deserializer<R, S, BigEndian>> for Deserializer<R, S, LittleEndian> {
+    fn from(t: Deserializer<R, S, BigEndian>) -> Self {
+        Deserializer::<R, S, LittleEndian> {
             reader: t.reader,
             size_limit: t.size_limit,
             pos: t.pos,
@@ -528,38 +470,23 @@ const UTF8_CHAR_WIDTH: &'static [u8; 256] = &[
     4,4,4,4, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 0xFF
 ];
 
-pub fn deserialize<'de, T>(bytes: &[u8]) -> Result<T>
+/// Deserializes a slice of bytes into an object.
+pub fn deserialize_data<'de, T, E>(bytes: &[u8]) -> Result<T>
 where
     T: de::Deserialize<'de>,
+    E: ByteOrder,
 {
-    let mut reader = bytes;
-    deserialize_from::<_, _, _>(&mut reader, Infinite)
+    deserialize_data_from::<_, _, _, E>(bytes, Infinite)
 }
 
-pub fn deserialize_from<'de, R, T, S>(reader: &mut R, size_limit: S) -> Result<T>
+/// Deserializes an object directly from a `Read`.
+pub fn deserialize_data_from<'de, R, T, S, E>(reader: R, size_limit: S) -> Result<T>
 where
     R: Read,
     T: de::Deserialize<'de>,
     S: SizeLimit,
+    E: ByteOrder,
 {
-    use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
-
-    let mut deserializer = Deserializer::<_, S, CdrBe>::new(reader, size_limit);
-
-    let v: [u8; ENCAPSULATION_HEADER_SIZE as usize] =
-        de::Deserialize::deserialize(&mut deserializer)?;
-    deserializer.reset_pos()?;
-    match v[1] {
-        0 => de::Deserialize::deserialize(&mut deserializer),
-        1 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, CdrLe>>::into(deserializer),
-        ),
-        2 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, PlCdrBe>>::into(deserializer),
-        ),
-        3 => de::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, PlCdrLe>>::into(deserializer),
-        ),
-        _ => Err(Box::new(ErrorKind::Message("unknown encapsulation".into()))),
-    }
+    let mut deserializer = Deserializer::<_, S, E>::new(reader, size_limit);
+    de::Deserialize::deserialize(&mut deserializer)
 }

@@ -6,14 +6,29 @@ A serialization/deserialization implementation for Common Data Representation in
 
 [Documentation](https://katsutoshihorie.com/cdr-rs)
 
+## Usage
+
+Add this to your Cargo.toml:
+
+``` toml
+[dependencies]
+cdr = { git = "https://github.com/hrektts/cdr-rs" }
+```
+
+Then add this to your crate:
+
+``` rust
+extern crate cdr;
+```
+
 ## Example
 
 ``` rust
+extern crate cdr;
 #[macro_use]
 extern crate serde_derive;
-extern crate cdr;
 
-use cdr::{deserialize, serialize, CdrBe, Infinite};
+use cdr::{CdrBe, Infinite};
 
 #[derive(Deserialize, Serialize, PartialEq)]
 struct Point {
@@ -29,12 +44,29 @@ fn main() {
                                 Point { x: 1.0, y: -1.0 },
                                 Point { x: 0.0, y: 0.73 }]);
 
-    let encoded: Vec<u8> = serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
-    let decoded: Polygon = deserialize(&encoded[..]).unwrap();
+    let encoded = cdr::serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
+    let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
 
     assert!(triangle == decoded);
 }
 ```
+
+## License
+
+This project is licensed under either of
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or
+   http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+   http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 ## References
 

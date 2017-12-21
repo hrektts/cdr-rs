@@ -1,25 +1,30 @@
+//! Measuring the size of (de)serialized data.
+
 use std;
 
 use serde::ser;
-use super::error::{Error, ErrorKind, Result};
 
+use error::{Error, ErrorKind, Result};
+
+/// Limits on the number of bytes that can be read or written.
 pub trait SizeLimit {
     fn add(&mut self, n: u64) -> Result<()>;
     fn limit(&self) -> Option<u64>;
 }
 
+/// A `SizeLimit` that restricts serialized or deserialized messages so that
+/// they do not exceed a certain byte length.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Bounded(pub u64);
 
 impl SizeLimit for Bounded {
     #[inline]
     fn add(&mut self, n: u64) -> Result<()> {
-        use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
-
-        if self.0 >= (n + ENCAPSULATION_HEADER_SIZE) {
+        if self.0 >= n {
             self.0 -= n;
             Ok(())
         } else {
-            Err(Box::new(ErrorKind::SizeLimit))
+            Err(ErrorKind::SizeLimit.into())
         }
     }
 
@@ -29,6 +34,8 @@ impl SizeLimit for Bounded {
     }
 }
 
+/// A `SizeLimit` without a limit.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Infinite;
 
 impl SizeLimit for Infinite {
@@ -53,7 +60,7 @@ impl SizeLimit for Counter {
         self.total += n;
         if let Some(limit) = self.limit {
             if self.total > limit {
-                return Err(Box::new(ErrorKind::SizeLimit));
+                return Err(ErrorKind::SizeLimit.into());
             }
         }
         Ok(())
@@ -64,7 +71,7 @@ impl SizeLimit for Counter {
     }
 }
 
-pub struct SizeChecker<S> {
+struct SizeChecker<S> {
     counter: S,
     pos: usize,
 }
@@ -74,10 +81,7 @@ where
     S: SizeLimit,
 {
     pub fn new(counter: S) -> SizeChecker<S> {
-        SizeChecker {
-            counter: counter,
-            pos: 0,
-        }
+        SizeChecker { counter, pos: 0 }
     }
 
     fn add_padding_of<T>(&mut self) -> Result<()> {
@@ -100,7 +104,7 @@ where
 
     fn add_usize_as_u32(&mut self, v: usize) -> Result<()> {
         if v > std::u32::MAX as usize {
-            return Err(Box::new(ErrorKind::NumberOutOfRange));
+            return Err(ErrorKind::NumberOutOfRange.into());
         }
 
         ser::Serializer::serialize_u32(self, v as u32)
@@ -126,84 +130,68 @@ where
     type SerializeStruct = SizeCompound<'a, S>;
     type SerializeStructVariant = SizeCompound<'a, S>;
 
-    #[inline]
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok> {
-        self.add_value(0 as u8)
+        self.add_value(0u8)
     }
 
-    #[inline]
     fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
         self.add_value(v)
     }
 
-    #[inline]
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
         self.add_size(v.len_utf8() as u64)
     }
 
-    #[inline]
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
         self.add_value(0 as u32)?;
-        self.add_size(v.len() as u64)
+        self.add_size(v.len() as u64 + 1) // adds the length 1 of a terminating character
     }
 
-    #[inline]
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
         self.add_value(0 as u32)?;
         self.add_size(v.len() as u64)
     }
 
-    #[inline]
     fn serialize_none(self) -> Result<Self::Ok> {
         self.add_value(0 as u8)
     }
 
-    #[inline]
     fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
@@ -212,17 +200,14 @@ where
         v.serialize(self)
     }
 
-    #[inline]
     fn serialize_unit(self) -> Result<Self::Ok> {
         Ok(())
     }
 
-    #[inline]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<Self::Ok> {
         Ok(())
     }
 
-    #[inline]
     fn serialize_unit_variant(
         self,
         _name: &'static str,
@@ -232,7 +217,6 @@ where
         self.serialize_u32(variant_index)
     }
 
-    #[inline]
     fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
@@ -240,7 +224,6 @@ where
         value.serialize(self)
     }
 
-    #[inline]
     fn serialize_newtype_variant<T: ?Sized>(
         self,
         _name: &'static str,
@@ -251,24 +234,20 @@ where
     where
         T: ser::Serialize,
     {
-        self.serialize_u32(variant_index).and_then(
-            |_| value.serialize(self),
-        )
+        self.serialize_u32(variant_index)?;
+        value.serialize(self)
     }
 
-    #[inline]
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
         let len = len.ok_or(ErrorKind::SequenceMustHaveLength)?;
         self.add_usize_as_u32(len)?;
         Ok(SizeCompound { ser: self })
     }
 
-    #[inline]
     fn serialize_tuple(self, _len: usize) -> Result<Self::SerializeTuple> {
         Ok(SizeCompound { ser: self })
     }
 
-    #[inline]
     fn serialize_tuple_struct(
         self,
         _name: &'static str,
@@ -277,7 +256,6 @@ where
         Ok(SizeCompound { ser: self })
     }
 
-    #[inline]
     fn serialize_tuple_variant(
         self,
         _name: &'static str,
@@ -289,17 +267,14 @@ where
         Ok(SizeCompound { ser: self })
     }
 
-    #[inline]
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        Err(Box::new(ErrorKind::Message("type not supported".into())))
+        Err(ErrorKind::TypeNotSupported.into())
     }
 
-    #[inline]
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
         Ok(SizeCompound { ser: self })
     }
 
-    #[inline]
     fn serialize_struct_variant(
         self,
         _name: &'static str,
@@ -310,8 +285,13 @@ where
         self.serialize_u32(variant_index)?;
         Ok(SizeCompound { ser: self })
     }
+
+    fn is_human_readable(&self) -> bool {
+        false
+    }
 }
 
+#[doc(hidden)]
 pub struct SizeCompound<'a, S: 'a> {
     ser: &'a mut SizeChecker<S>,
 }
@@ -471,15 +451,14 @@ where
     }
 }
 
-pub fn calc_serialized_size<T: ?Sized>(value: &T) -> u64
+/// Returns the size that an object would be if serialized.
+pub fn calc_serialized_data_size<T: ?Sized>(value: &T) -> u64
 where
     T: ser::Serialize,
 {
-    use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
-
     let mut checker = SizeChecker {
         counter: Counter {
-            total: ENCAPSULATION_HEADER_SIZE,
+            total: 0,
             limit: None,
         },
         pos: 0,
@@ -489,23 +468,19 @@ where
     checker.counter.total
 }
 
-pub fn calc_serialized_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u64>
+/// Given a maximum size limit, check how large an object would be if it were
+/// to be serialized.
+pub fn calc_serialized_data_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u64>
 where
     T: ser::Serialize,
 {
-    use super::encapsulation::ENCAPSULATION_HEADER_SIZE;
+    let mut checker = SizeChecker {
+        counter: Bounded(max),
+        pos: 0,
+    };
 
-    if max < ENCAPSULATION_HEADER_SIZE {
-        Err(Box::new(ErrorKind::SizeLimit))
-    } else {
-        let mut checker = SizeChecker {
-            counter: Bounded(max - ENCAPSULATION_HEADER_SIZE),
-            pos: 0,
-        };
-
-        match value.serialize(&mut checker) {
-            Ok(_) => Ok(max - checker.counter.0),
-            Err(e) => Err(e),
-        }
+    match value.serialize(&mut checker) {
+        Ok(_) => Ok(max - checker.counter.0),
+        Err(e) => Err(e),
     }
 }

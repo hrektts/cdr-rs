@@ -4,19 +4,19 @@ sudo: false
 matrix:
   include:
     - os: linux
-      rust: stable
+      rust: nightly
       env:
         - FORMAT=1
         - BENCH=1
       before_script:
         - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
-        - travis_wait 30 cargo install -f rustfmt
+        - rustup component add rustfmt-preview
       after_success:
         - travis-cargo doc-upload
     - os: linux
       rust: beta
     - os: linux
-      rust: nightly
+      rust: stable
     - os: osx
       rust: stable
 script:

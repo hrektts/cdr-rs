@@ -1,7 +1,8 @@
-use byteorder::{ByteOrder, BigEndian, LittleEndian};
+use byteorder::{BigEndian, ByteOrder, LittleEndian};
 
 pub const ENCAPSULATION_HEADER_SIZE: u64 = 4;
 
+/// Data encapsulation scheme identifiers.
 pub trait Encapsulation {
     type E: ByteOrder;
 
@@ -11,6 +12,8 @@ pub trait Encapsulation {
     }
 }
 
+/// OMG CDR big-endian encapsulation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CdrBe {}
 
 impl Encapsulation for CdrBe {
@@ -21,6 +24,8 @@ impl Encapsulation for CdrBe {
     }
 }
 
+/// OMG CDR little-endian encapsulation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum CdrLe {}
 
 impl Encapsulation for CdrLe {
@@ -31,6 +36,8 @@ impl Encapsulation for CdrLe {
     }
 }
 
+/// ParameterList encapsulated using OMG CDR big-endian encapsulation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PlCdrBe {}
 
 impl Encapsulation for PlCdrBe {
@@ -41,6 +48,8 @@ impl Encapsulation for PlCdrBe {
     }
 }
 
+/// ParameterList encapsulated using OMG CDR little-endian encapsulation.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum PlCdrLe {}
 
 impl Encapsulation for PlCdrLe {
