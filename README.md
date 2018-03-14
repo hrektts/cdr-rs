@@ -13,7 +13,7 @@ Add this to your Cargo.toml:
 
 ``` toml
 [dependencies]
-cdr = { git = "https://github.com/hrektts/cdr-rs" }
+cdr = "0.2.1"
 ```
 
 Then add this to your crate:
