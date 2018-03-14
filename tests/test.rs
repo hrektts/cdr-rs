@@ -1,5 +1,3 @@
-#![feature(use_nested_groups)]
-
 extern crate cdr;
 extern crate serde;
 #[macro_use]

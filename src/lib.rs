@@ -30,8 +30,6 @@
 //! }
 //! ```
 
-#![feature(use_nested_groups)]
-
 extern crate byteorder;
 extern crate failure;
 #[macro_use]
