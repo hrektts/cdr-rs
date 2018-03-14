@@ -84,17 +84,28 @@ impl serde::ser::Error for Error {
 /// The kind of an error.
 #[derive(Debug, Fail)]
 pub enum ErrorKind {
-    #[fail(display = "{}", _0)] Message(String),
-    #[fail(display = "{}", _0)] Io(#[cause] io::Error),
+    #[fail(display = "{}", _0)]
+    Message(String),
+    #[fail(display = "{}", _0)]
+    Io(#[cause] io::Error),
     #[fail(display = "does not support the serde::Deserializer::deserialize_any method")]
     DeserializeAnyNotSupported,
-    #[fail(display = "expected 0 or 1, found {}", _0)] InvalidBoolEncoding(u8),
-    #[fail(display = "expected char of width 1, found {}", _0)] InvalidChar(char),
-    #[fail(display = "char is not valid UTF-8")] InvalidCharEncoding,
-    #[fail(display = "encapsulation is not valid")] InvalidEncapsulation,
-    #[fail(display = "string is not valid")] InvalidUtf8Encoding(Utf8Error),
-    #[fail(display = "sequence is too long")] NumberOutOfRange,
-    #[fail(display = "sequences must have a knowable size ahead of time")] SequenceMustHaveLength,
-    #[fail(display = "the size limit has been reached")] SizeLimit,
-    #[fail(display = "unsupported type")] TypeNotSupported,
+    #[fail(display = "expected 0 or 1, found {}", _0)]
+    InvalidBoolEncoding(u8),
+    #[fail(display = "expected char of width 1, found {}", _0)]
+    InvalidChar(char),
+    #[fail(display = "char is not valid UTF-8")]
+    InvalidCharEncoding,
+    #[fail(display = "encapsulation is not valid")]
+    InvalidEncapsulation,
+    #[fail(display = "string is not valid")]
+    InvalidUtf8Encoding(Utf8Error),
+    #[fail(display = "sequence is too long")]
+    NumberOutOfRange,
+    #[fail(display = "sequences must have a knowable size ahead of time")]
+    SequenceMustHaveLength,
+    #[fail(display = "the size limit has been reached")]
+    SizeLimit,
+    #[fail(display = "unsupported type")]
+    TypeNotSupported,
 }
