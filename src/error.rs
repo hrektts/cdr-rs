@@ -1,4 +1,7 @@
-use std::{self, io, fmt::{self, Display}, str::Utf8Error};
+use std::{self,
+          fmt::{self, Display},
+          io,
+          str::Utf8Error};
 
 use failure::Context;
 use serde;

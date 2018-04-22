@@ -105,9 +105,7 @@ where
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
             assert!(
                 cdr::ser::serialize_data_into::<_, _, _, LittleEndian>(
-                    &mut buf,
-                    &element,
-                    Infinite
+                    &mut buf, &element, Infinite
                 ).is_err()
             );
         }
@@ -139,9 +137,7 @@ where
             let mut buf = Cursor::new(&mut buf[0..0]);
             assert!(
                 cdr::ser::serialize_data_into::<_, _, _, LittleEndian>(
-                    &mut buf,
-                    &element,
-                    Infinite
+                    &mut buf, &element, Infinite
                 ).is_ok()
             );
         }
@@ -825,12 +821,10 @@ fn test_unsupported() {
     check_error_kind(cdr::de::deserialize_data::<Option<usize>, BigEndian>(
         &Vec::new().as_slice(),
     ));
-    check_error_kind(cdr::de::deserialize_data::<
-        HashMap<usize, usize>,
-        BigEndian,
-    >(&Vec::new().as_slice()));
-    check_error_kind(cdr::de::deserialize_data::<
-        BTreeMap<usize, usize>,
-        BigEndian,
-    >(&Vec::new().as_slice()));
+    check_error_kind(
+        cdr::de::deserialize_data::<HashMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+    );
+    check_error_kind(
+        cdr::de::deserialize_data::<BTreeMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+    );
 }
