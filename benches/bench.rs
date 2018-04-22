@@ -1,4 +1,3 @@
-#![feature(use_nested_groups)]
 #![feature(test)]
 
 extern crate cdr;
