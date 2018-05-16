@@ -5,8 +5,9 @@ extern crate serde_derive;
 
 use std::{fmt::Debug, io::Cursor};
 
-use cdr::{BigEndian, Bounded, CdrBe, CdrLe, ErrorKind, Infinite, LittleEndian, PlCdrBe, PlCdrLe,
-          Result};
+use cdr::{
+    BigEndian, Bounded, CdrBe, CdrLe, ErrorKind, Infinite, LittleEndian, PlCdrBe, PlCdrLe, Result,
+};
 
 const ENCAPSULATION_HEADER_SIZE: u64 = 4;
 
