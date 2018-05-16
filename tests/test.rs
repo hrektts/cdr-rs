@@ -673,7 +673,7 @@ fn test_array_in_array() {
 
 #[test]
 fn test_tuple() {
-    check((1u32), Some(4));
+    check((1u32,), Some(4));
     check((1u32, 2i32), Some(4 + 4));
     check((1u16, 2i16, 3.14f32, "hi".to_string()), Some(2 + 2 + 4 + 7));
 }
