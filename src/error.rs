@@ -1,8 +1,11 @@
 use std::{
-    self, fmt::{self, Display}, io, str::Utf8Error,
+    self,
+    fmt::{self, Display},
+    io,
+    str::Utf8Error,
 };
 
-use failure::Context;
+use failure::{Context, Fail};
 use serde;
 
 /// Convenient wrapper around `std::Result`.
@@ -47,7 +50,7 @@ impl std::error::Error for Error {
 
 impl From<Context<ErrorKind>> for Error {
     fn from(inner: Context<ErrorKind>) -> Error {
-        Error { inner: inner }
+        Error { inner }
     }
 }
 

@@ -5,8 +5,8 @@ use std::{self, io::Read, marker::PhantomData};
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 use serde::de::{self, IntoDeserializer};
 
-use error::{Error, ErrorKind, Result};
-use size::{Infinite, SizeLimit};
+use crate::error::{Error, ErrorKind, Result};
+use crate::size::{Infinite, SizeLimit};
 
 /// A deserializer that reads bytes from a buffer.
 pub struct Deserializer<R, S, E> {
@@ -24,8 +24,8 @@ where
 {
     pub fn new(reader: R, size_limit: S) -> Self {
         Self {
-            reader: reader,
-            size_limit: size_limit,
+            reader,
+            size_limit,
             pos: 0,
             phantom: PhantomData,
         }
@@ -68,7 +68,7 @@ where
         let len: u32 = de::Deserialize::deserialize(&mut *self)?;
         let mut buf = Vec::with_capacity(len as usize);
         unsafe { buf.set_len(len as usize) }
-        self.read_size(len as u64)?;
+        self.read_size(u64::from(len))?;
         self.reader.read_exact(&mut buf[..])?;
         Ok(buf)
     }
@@ -315,7 +315,7 @@ where
 
         visitor.visit_seq(Access {
             deserializer: self,
-            len: len,
+            len,
         })
     }
 
@@ -451,23 +451,23 @@ fn utf8_char_width(first_byte: u8) -> usize {
 }
 
 // https://tools.ietf.org/html/rfc3629
-const UTF8_CHAR_WIDTH: &'static [u8; 256] = &[
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // 0x1F
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // 0x3F
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // 0x5F
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
-    1,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1, // 0x7F
-    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 0x9F
-    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-    0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 0xBF
-    0,0,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2,
-    2,2,2,2, 2,2,2,2, 2,2,2,2, 2,2,2,2, // 0xDF
-    3,3,3,3, 3,3,3,3, 3,3,3,3, 3,3,3,3, // 0xEF
-    4,4,4,4, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 0xFF
+const UTF8_CHAR_WIDTH: &[u8; 256] = &[
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, //
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x1F
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, //
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x3F
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, //
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x5F
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, //
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 0x7F
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0x9F
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, //
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xBF
+    0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, //
+    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // 0xDF
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // 0xEF
+    4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 0xFF
 ];
 
 /// Deserializes a slice of bytes into an object.

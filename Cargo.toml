@@ -12,6 +12,7 @@ readme = "README.md"
 keywords = ["encode", "decode", "serialize", "deserialize"]
 categories = ["encoding", "network-programming"]
 license = "MIT/Apache-2.0"
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "hrektts/cdr-rs" }

@@ -1,11 +1,10 @@
 #![feature(test)]
 
-extern crate cdr;
-#[macro_use]
-extern crate serde_derive;
 extern crate test;
 
 use test::Bencher;
+
+use serde_derive::{Deserialize, Serialize};
 
 // cf. https://polysync.io/download/polysync-safety_and_serialization.pdf
 #[repr(C)]
@@ -44,8 +43,7 @@ fn compose_lidar_points_msg() -> LidarPointsMsg {
                 std::f32::EPSILON * 2.,
             ],
             intensity: 7,
-        })
-        .collect::<Vec<_>>();
+        }).collect::<Vec<_>>();
     LidarPointsMsg { msg_info, points }
 }
 

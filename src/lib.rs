@@ -3,11 +3,8 @@
 //! # Examples
 //!
 //! ```rust
-//! extern crate cdr;
-//! #[macro_use]
-//! extern crate serde_derive;
-//!
 //! use cdr::{CdrBe, Infinite};
+//! use serde_derive::{Deserialize, Serialize};
 //!
 //! #[derive(Deserialize, Serialize, PartialEq)]
 //! struct Point {
@@ -30,31 +27,25 @@
 //! }
 //! ```
 
-extern crate byteorder;
-extern crate failure;
-#[macro_use]
-extern crate failure_derive;
-extern crate serde;
-
 pub use byteorder::{BigEndian, LittleEndian};
 
 pub mod de;
 #[doc(inline)]
-pub use de::Deserializer;
+pub use crate::de::Deserializer;
 
 mod encapsulation;
-pub use encapsulation::{CdrBe, CdrLe, Encapsulation, PlCdrBe, PlCdrLe};
+pub use crate::encapsulation::{CdrBe, CdrLe, Encapsulation, PlCdrBe, PlCdrLe};
 
 mod error;
-pub use error::{Error, ErrorKind, Result};
+pub use crate::error::{Error, ErrorKind, Result};
 
 pub mod ser;
 #[doc(inline)]
-pub use ser::Serializer;
+pub use crate::ser::Serializer;
 
 pub mod size;
 #[doc(inline)]
-pub use size::{Bounded, Infinite, SizeLimit};
+pub use crate::size::{Bounded, Infinite, SizeLimit};
 
 use std::io::{Read, Write};
 
@@ -72,7 +63,7 @@ pub fn calc_serialized_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u6
 where
     T: serde::Serialize,
 {
-    use encapsulation::ENCAPSULATION_HEADER_SIZE;
+    use crate::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
     if max < ENCAPSULATION_HEADER_SIZE {
         Err(ErrorKind::SizeLimit.into())
@@ -139,7 +130,7 @@ where
     T: serde::Deserialize<'de>,
     S: SizeLimit,
 {
-    use encapsulation::ENCAPSULATION_HEADER_SIZE;
+    use crate::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
     let mut deserializer = Deserializer::<_, S, BigEndian>::new(reader, size_limit);
 

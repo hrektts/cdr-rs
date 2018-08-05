@@ -4,7 +4,7 @@ use std;
 
 use serde::ser;
 
-use error::{Error, ErrorKind, Result};
+use crate::error::{Error, ErrorKind, Result};
 
 /// Limits on the number of bytes that can be read or written.
 pub trait SizeLimit {

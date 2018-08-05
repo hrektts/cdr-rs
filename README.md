@@ -16,12 +16,6 @@ Add this to your Cargo.toml:
 cdr = "0.2.1"
 ```
 
-Then add this to your crate:
-
-``` rust
-extern crate cdr;
-```
-
 ## Example
 
 ``` rust
