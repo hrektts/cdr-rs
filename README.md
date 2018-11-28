@@ -16,36 +16,6 @@ Add this to your Cargo.toml:
 cdr = "0.2.1"
 ```
 
-## Example
-
-``` rust
-extern crate cdr;
-#[macro_use]
-extern crate serde_derive;
-
-use cdr::{CdrBe, Infinite};
-
-#[derive(Deserialize, Serialize, PartialEq)]
-struct Point {
-    x: f64,
-    y: f64,
-}
-
-#[derive(Deserialize, Serialize, PartialEq)]
-struct Polygon(Vec<Point>);
-
-fn main() {
-    let triangle = Polygon(vec![Point { x: -1.0, y: -1.0 },
-                                Point { x: 1.0, y: -1.0 },
-                                Point { x: 0.0, y: 0.73 }]);
-
-    let encoded = cdr::serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
-    let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
-
-    assert!(triangle == decoded);
-}
-```
-
 ## License
 
 This project is licensed under either of

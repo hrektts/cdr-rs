@@ -23,7 +23,6 @@ matrix:
 script:
   - cargo build
   - cargo test
-  - rustdoc --test README.md -L target/debug -L target/debug/deps
   - cargo doc --no-deps
   - if [ "$BENCH" = "1" ]; then cargo bench; fi
 env:
