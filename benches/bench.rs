@@ -43,7 +43,8 @@ fn compose_lidar_points_msg() -> LidarPointsMsg {
                 std::f32::EPSILON * 2.,
             ],
             intensity: 7,
-        }).collect::<Vec<_>>();
+        })
+        .collect::<Vec<_>>();
     LidarPointsMsg { msg_info, points }
 }
 
@@ -121,7 +122,8 @@ And gentlemen in England now a-bed
 Shall think themselves accursed they were not here,
 And hold their manhoods cheap whiles any speaks
 That fought with us upon Saint Crispin's day.
-"#.into()
+"#
+    .into()
 }
 
 #[bench]

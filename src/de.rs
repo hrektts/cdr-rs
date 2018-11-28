@@ -61,7 +61,8 @@ where
         String::from_utf8(self.read_vec().map(|mut v| {
             v.pop(); // removes a terminating null character
             v
-        })?).map_err(|e| ErrorKind::InvalidUtf8Encoding(e.utf8_error()).into())
+        })?)
+        .map_err(|e| ErrorKind::InvalidUtf8Encoding(e.utf8_error()).into())
     }
 
     fn read_vec(&mut self) -> Result<Vec<u8>> {
