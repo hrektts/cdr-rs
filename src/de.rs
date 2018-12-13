@@ -32,10 +32,12 @@ where
     }
 
     fn read_padding_of<T>(&mut self) -> Result<()> {
+        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
+        // Instead of using the slow modulo operation '%', the faster bit-masking is used
         let alignment = std::mem::size_of::<T>();
-        let mut padding = [0; 8];
-        self.pos %= 8;
-        match (self.pos as usize) % alignment {
+        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
+        let mut padding: [u8; 8] = [0; 8];
+        match (self.pos as usize) & rem_mask {
             0 => Ok(()),
             n @ 1...7 => {
                 let amt = alignment - n;
