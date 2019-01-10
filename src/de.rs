@@ -8,6 +8,29 @@ use serde::de::{self, IntoDeserializer};
 use crate::error::{Error, ErrorKind, Result};
 use crate::size::{Infinite, SizeLimit};
 
+macro_rules! read_padding_of {
+    ($own:expr, $T:ty) => {{
+        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
+        // Instead of using the slow modulo operation '%', the faster bit-masking is used
+        const ALIGNMENT: usize = std::mem::size_of::<$T>();
+        const REM_MASK: usize = ALIGNMENT - 1; // mask like 0x0, 0x1, 0x3, 0x7
+        let mut padding: [u8; 8] = [0; 8];
+        match ($own.pos as usize) & REM_MASK {
+            0 => Ok(()),
+            n @ 1...7 => {
+                let amt = ALIGNMENT - n;
+                $own.read_size(amt as u64)?;
+                // Compiler-hint return type
+                let result: Result<()> = $own.reader
+                    .read_exact(&mut padding[..amt])
+                    .map_err(Into::into);
+                result
+            }
+            _ => unreachable!(),
+        }
+    }};
+}
+
 /// A deserializer that reads bytes from a buffer.
 pub struct Deserializer<R, S, E> {
     reader: R,
@@ -31,24 +54,24 @@ where
         }
     }
 
-    fn read_padding_of<T>(&mut self) -> Result<()> {
-        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
-        // Instead of using the slow modulo operation '%', the faster bit-masking is used
-        let alignment = std::mem::size_of::<T>();
-        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
-        let mut padding: [u8; 8] = [0; 8];
-        match (self.pos as usize) & rem_mask {
-            0 => Ok(()),
-            n @ 1...7 => {
-                let amt = alignment - n;
-                self.read_size(amt as u64)?;
-                self.reader
-                    .read_exact(&mut padding[..amt])
-                    .map_err(Into::into)
-            }
-            _ => unreachable!(),
-        }
-    }
+//    fn read_padding_of<T>(&mut self) -> Result<()> {
+//        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
+//        // Instead of using the slow modulo operation '%', the faster bit-masking is used
+//        let alignment = std::mem::size_of::<T>();
+//        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
+//        let mut padding: [u8; 8] = [0; 8];
+//        match (self.pos as usize) & rem_mask {
+//            0 => Ok(()),
+//            n @ 1...7 => {
+//                let amt = alignment - n;
+//                self.read_size(amt as u64)?;
+//                self.reader
+//                    .read_exact(&mut padding[..amt])
+//                    .map_err(Into::into)
+//            }
+//            _ => unreachable!(),
+//        }
+//    }
 
     fn read_size(&mut self, size: u64) -> Result<()> {
         self.pos += size;
@@ -120,7 +143,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u16>()?;
+        read_padding_of!(self,u16)?;
         self.read_size_of::<u16>()?;
         visitor.visit_u16(self.reader.read_u16::<E>()?)
     }
@@ -129,7 +152,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u32>()?;
+        read_padding_of!(self,u32)?;
         self.read_size_of::<u32>()?;
         visitor.visit_u32(self.reader.read_u32::<E>()?)
     }
@@ -138,7 +161,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<u64>()?;
+        read_padding_of!(self,u64)?;
         self.read_size_of::<u64>()?;
         visitor.visit_u64(self.reader.read_u64::<E>()?)
     }
@@ -155,7 +178,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i16>()?;
+        read_padding_of!(self,i16)?;
         self.read_size_of::<i16>()?;
         visitor.visit_i16(self.reader.read_i16::<E>()?)
     }
@@ -164,7 +187,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i32>()?;
+        read_padding_of!(self,i32)?;
         self.read_size_of::<i32>()?;
         visitor.visit_i32(self.reader.read_i32::<E>()?)
     }
@@ -173,7 +196,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i64>()?;
+        read_padding_of!(self,i64)?;
         self.read_size_of::<i64>()?;
         visitor.visit_i64(self.reader.read_i64::<E>()?)
     }
@@ -182,7 +205,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<f32>()?;
+        read_padding_of!(self,f32)?;
         self.read_size_of::<f32>()?;
         visitor.visit_f32(self.reader.read_f32::<E>()?)
     }
@@ -191,7 +214,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<f64>()?;
+        read_padding_of!(self,f64)?;
         self.read_size_of::<f64>()?;
         visitor.visit_f64(self.reader.read_f64::<E>()?)
     }

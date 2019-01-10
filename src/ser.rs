@@ -10,6 +10,38 @@ use crate::size::{
     calc_serialized_data_size, calc_serialized_data_size_bounded, Infinite, SizeLimit,
 };
 
+macro_rules! set_pos_of {
+    ($own:expr, $T:ty) => {{
+       write_padding_of!($own,$T)?;
+       $own.add_pos(std::mem::size_of::<$T>() as u64);
+       // Compiler-hint return type
+       let result: Result<()> = Ok(());
+       result
+    }};
+}
+
+macro_rules! write_padding_of {
+    ($own:expr, $T:ty) => {{
+        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
+        // Instead of using the slow modulo operation '%', the faster bit-masking is used
+        const PADDING: [u8; 8] = [0; 8];
+        const ALIGNMENT: usize = std::mem::size_of::<$T>();
+        const REM_MASK: usize = ALIGNMENT - 1; // mask like 0x0, 0x1, 0x3, 0x7
+        match ($own.pos as usize) & REM_MASK {
+            0 => Ok(()),
+            n @ 1...7 => {
+                let amt = ALIGNMENT - n;
+                $own.pos += amt as u64;
+                // Compiler-hint return type
+                let result: Result<()> = $own.writer.write_all(&PADDING[..amt]).map_err(Into::into);
+                result
+            }
+            _ => unreachable!(),
+        }
+    }};
+}
+
+
 /// A serializer that writes values into a buffer.
 pub struct Serializer<W, E> {
     writer: W,
@@ -18,9 +50,9 @@ pub struct Serializer<W, E> {
 }
 
 impl<W, E> Serializer<W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     pub fn new(writer: W) -> Self {
         Self {
@@ -38,29 +70,6 @@ where
         self.pos = 0;
     }
 
-    fn set_pos_of<T>(&mut self) -> Result<()> {
-        self.write_padding_of::<T>()?;
-        self.add_pos(std::mem::size_of::<T>() as u64);
-        Ok(())
-    }
-
-    fn write_padding_of<T>(&mut self) -> Result<()> {
-        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
-        // Instead of using the slow modulo operation '%', the faster bit-masking is used
-        const PADDING: [u8; 8] = [0; 8];
-        let alignment = std::mem::size_of::<T>();
-        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
-        match (self.pos as usize) & rem_mask {
-            0 => Ok(()),
-            n @ 1...7 => {
-                let amt = alignment - n;
-                self.pos += amt as u64;
-                self.writer.write_all(&PADDING[..amt]).map_err(Into::into)
-            }
-            _ => unreachable!(),
-        }
-    }
-
     fn write_usize_as_u32(&mut self, v: usize) -> Result<()> {
         if v > std::u32::MAX as usize {
             return Err(ErrorKind::NumberOutOfRange.into());
@@ -71,9 +80,9 @@ where
 }
 
 impl<'a, W, E> ser::Serializer for &'a mut Serializer<W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
@@ -86,59 +95,59 @@ where
     type SerializeStructVariant = Compound<'a, W, E>;
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
-        self.set_pos_of::<bool>()?;
+        set_pos_of!(self, bool)?;
         self.writer
             .write_u8(if v { 1 } else { 0 })
             .map_err(Into::into)
     }
 
     fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.set_pos_of::<u8>()?;
+        set_pos_of!(self, u8)?;
         self.writer.write_u8(v).map_err(Into::into)
     }
 
     fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.set_pos_of::<u16>()?;
+        set_pos_of!(self, u16)?;
         self.writer.write_u16::<E>(v).map_err(Into::into)
     }
 
     fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.set_pos_of::<u32>()?;
+        set_pos_of!(self, u32)?;
         self.writer.write_u32::<E>(v).map_err(Into::into)
     }
 
     fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        self.set_pos_of::<u64>()?;
+        set_pos_of!(self, u64)?;
         self.writer.write_u64::<E>(v).map_err(Into::into)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        self.set_pos_of::<i8>()?;
+        set_pos_of!(self, i8)?;
         self.writer.write_i8(v).map_err(Into::into)
     }
 
     fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.set_pos_of::<i16>()?;
+        set_pos_of!(self, i16)?;
         self.writer.write_i16::<E>(v).map_err(Into::into)
     }
 
     fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.set_pos_of::<i32>()?;
+        set_pos_of!(self, i32)?;
         self.writer.write_i32::<E>(v).map_err(Into::into)
     }
 
     fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.set_pos_of::<i64>()?;
+        set_pos_of!(self, i64)?;
         self.writer.write_i64::<E>(v).map_err(Into::into)
     }
 
     fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.set_pos_of::<f32>()?;
+        set_pos_of!(self, f32)?;
         self.writer.write_f32::<E>(v).map_err(Into::into)
     }
 
     fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.set_pos_of::<f64>()?;
+        set_pos_of!(self, f64)?;
         self.writer.write_f64::<E>(v).map_err(Into::into)
     }
 
@@ -175,8 +184,8 @@ where
     }
 
     fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         Err(ErrorKind::TypeNotSupported.into())
     }
@@ -199,8 +208,8 @@ where
     }
 
     fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(self)
     }
@@ -212,8 +221,8 @@ where
         _variant: &'static str,
         value: &T,
     ) -> Result<Self::Ok>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         self.serialize_u32(variant_index)?;
         value.serialize(self)
@@ -278,17 +287,17 @@ pub struct Compound<'a, W: 'a, E: 'a> {
 }
 
 impl<'a, W, E> ser::SerializeSeq for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -300,17 +309,17 @@ where
 }
 
 impl<'a, W, E> ser::SerializeTuple for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -322,17 +331,17 @@ where
 }
 
 impl<'a, W, E> ser::SerializeTupleStruct for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -344,17 +353,17 @@ where
 }
 
 impl<'a, W, E> ser::SerializeTupleVariant for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -366,25 +375,25 @@ where
 }
 
 impl<'a, W, E> ser::SerializeMap for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         key.serialize(&mut *self.ser)
     }
 
     #[inline]
     fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -396,17 +405,17 @@ where
 }
 
 impl<'a, W, E> ser::SerializeStruct for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -418,17 +427,17 @@ where
 }
 
 impl<'a, W, E> ser::SerializeStructVariant for Compound<'a, W, E>
-where
-    W: Write,
-    E: ByteOrder,
+    where
+        W: Write,
+        E: ByteOrder,
 {
     type Ok = ();
     type Error = Error;
 
     #[inline]
     fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
-    where
-        T: ser::Serialize,
+        where
+            T: ser::Serialize,
     {
         value.serialize(&mut *self.ser)
     }
@@ -441,10 +450,10 @@ where
 
 /// Serializes a serializable object into a `Vec` of bytes.
 pub fn serialize_data<T: ?Sized, S, E>(value: &T, size_limit: S) -> Result<Vec<u8>>
-where
-    T: ser::Serialize,
-    S: SizeLimit,
-    E: ByteOrder,
+    where
+        T: ser::Serialize,
+        S: SizeLimit,
+        E: ByteOrder,
 {
     let mut writer = match size_limit.limit() {
         Some(limit) => {
@@ -463,11 +472,11 @@ where
 
 /// Serializes an object directly into a `Write`.
 pub fn serialize_data_into<W, T: ?Sized, S, E>(writer: W, value: &T, size_limit: S) -> Result<()>
-where
-    W: Write,
-    T: ser::Serialize,
-    S: SizeLimit,
-    E: ByteOrder,
+    where
+        W: Write,
+        T: ser::Serialize,
+        S: SizeLimit,
+        E: ByteOrder,
 {
     if let Some(limit) = size_limit.limit() {
         calc_serialized_data_size_bounded(value, limit)?;
