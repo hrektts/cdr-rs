@@ -175,7 +175,14 @@ where
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        self.add_size(v.len_utf8() as u64)
+        // CDR char-type is encoded as 1 octet (u8), no special alignment required
+        let width = v.len_utf8();
+        if width != 1 {
+            Err(ErrorKind::InvalidChar(v).into())
+        } else {
+            let ascii_octet_size: u64 = 1;
+            self.add_size(ascii_octet_size)
+        }
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
