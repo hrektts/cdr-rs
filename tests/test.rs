@@ -1,7 +1,7 @@
 use std::{fmt::Debug, io::Cursor};
 
 use cdr::{
-    BigEndian, Bounded, CdrBe, CdrLe, ErrorKind, Infinite, LittleEndian, PlCdrBe, PlCdrLe, Result,
+    BigEndian, Bounded, CdrBe, CdrLe, Error, Infinite, LittleEndian, PlCdrBe, PlCdrLe, Result,
 };
 use serde_derive::{Deserialize, Serialize};
 
@@ -786,8 +786,8 @@ fn test_unsupported() {
 
     fn check_error_kind<T: Debug>(res: Result<T>) {
         match res {
-            Err(e) => match e.kind_ref() {
-                &ErrorKind::TypeNotSupported => (),
+            Err(e) => match e {
+                Error::TypeNotSupported => (),
                 e => panic!("unexpected error kind: {}", e),
             },
             _ => panic!("should be error"),

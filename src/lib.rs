@@ -37,7 +37,7 @@ mod encapsulation;
 pub use crate::encapsulation::{CdrBe, CdrLe, Encapsulation, PlCdrBe, PlCdrLe};
 
 mod error;
-pub use crate::error::{Error, ErrorKind, Result};
+pub use crate::error::{Error, Result};
 
 pub mod ser;
 #[doc(inline)]
@@ -66,7 +66,7 @@ where
     use crate::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
     if max < ENCAPSULATION_HEADER_SIZE {
-        Err(ErrorKind::SizeLimit.into())
+        Err(Error::SizeLimit)
     } else {
         size::calc_serialized_data_size_bounded(value, max)
             .map(|size| size + ENCAPSULATION_HEADER_SIZE)
@@ -142,6 +142,6 @@ where
         1 | 3 => serde::Deserialize::deserialize(
             &mut Into::<Deserializer<_, _, LittleEndian>>::into(deserializer),
         ),
-        _ => Err(ErrorKind::InvalidEncapsulation.into()),
+        _ => Err(Error::InvalidEncapsulation),
     }
 }
