@@ -5,7 +5,7 @@ use std::{self, io::Write, marker::PhantomData};
 use byteorder::{ByteOrder, WriteBytesExt};
 use serde::ser;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::size::{
     calc_serialized_data_size, calc_serialized_data_size_bounded, Infinite, SizeLimit,
 };
@@ -63,7 +63,7 @@ where
 
     fn write_usize_as_u32(&mut self, v: usize) -> Result<()> {
         if v > std::u32::MAX as usize {
-            return Err(ErrorKind::NumberOutOfRange.into());
+            return Err(Error::NumberOutOfRange);
         }
 
         ser::Serializer::serialize_u32(self, v as u32)
@@ -145,7 +145,7 @@ where
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
         let width = v.len_utf8();
         if width != 1 {
-            Err(ErrorKind::InvalidChar(v).into())
+            Err(Error::InvalidChar(v))
         } else {
             let mut buf = [0u8; 1];
             v.encode_utf8(&mut buf);
@@ -171,14 +171,14 @@ where
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
@@ -220,7 +220,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        let len = len.ok_or(ErrorKind::SequenceMustHaveLength)?;
+        let len = len.ok_or(Error::SequenceMustHaveLength)?;
         self.write_usize_as_u32(len)?;
         Ok(Compound { ser: self })
     }
@@ -249,7 +249,7 @@ where
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {

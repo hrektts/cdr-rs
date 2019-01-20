@@ -5,7 +5,7 @@ use std::{self, io::Read, marker::PhantomData};
 use byteorder::{BigEndian, ByteOrder, LittleEndian, ReadBytesExt};
 use serde::de::{self, IntoDeserializer};
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 use crate::size::{Infinite, SizeLimit};
 
 /// A deserializer that reads bytes from a buffer.
@@ -64,7 +64,7 @@ where
             v.pop(); // removes a terminating null character
             v
         })?)
-        .map_err(|e| ErrorKind::InvalidUtf8Encoding(e.utf8_error()).into())
+        .map_err(|e| Error::InvalidUtf8Encoding(e.utf8_error()))
     }
 
     fn read_vec(&mut self) -> Result<Vec<u8>> {
@@ -93,7 +93,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(ErrorKind::DeserializeAnyNotSupported.into())
+        Err(Error::DeserializeAnyNotSupported)
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
@@ -104,7 +104,7 @@ where
         match value {
             1 => visitor.visit_bool(true),
             0 => visitor.visit_bool(false),
-            value => Err(ErrorKind::InvalidBoolEncoding(value).into()),
+            value => Err(Error::InvalidBoolEncoding(value)),
         }
     }
 
@@ -205,7 +205,7 @@ where
 
         let width = utf8_char_width(buf[0]);
         if width != 1 {
-            Err(ErrorKind::InvalidCharEncoding.into())
+            Err(Error::InvalidCharEncoding)
         } else {
             self.read_size(width as u64)?;
             visitor.visit_char(buf[0] as char)
@@ -244,7 +244,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
@@ -338,7 +338,7 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn deserialize_struct<V>(
@@ -388,14 +388,14 @@ where
     where
         V: de::Visitor<'de>,
     {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn is_human_readable(&self) -> bool {

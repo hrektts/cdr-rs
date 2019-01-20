@@ -4,7 +4,7 @@ use std;
 
 use serde::ser;
 
-use crate::error::{Error, ErrorKind, Result};
+use crate::error::{Error, Result};
 
 /// Limits on the number of bytes that can be read or written.
 pub trait SizeLimit {
@@ -24,7 +24,7 @@ impl SizeLimit for Bounded {
             self.0 -= n;
             Ok(())
         } else {
-            Err(ErrorKind::SizeLimit.into())
+            Err(Error::SizeLimit)
         }
     }
 
@@ -60,7 +60,7 @@ impl SizeLimit for Counter {
         self.total += n;
         if let Some(limit) = self.limit {
             if self.total > limit {
-                return Err(ErrorKind::SizeLimit.into());
+                return Err(Error::SizeLimit);
             }
         }
         Ok(())
@@ -104,7 +104,7 @@ where
 
     fn add_usize_as_u32(&mut self, v: usize) -> Result<()> {
         if v > std::u32::MAX as usize {
-            return Err(ErrorKind::NumberOutOfRange.into());
+            return Err(Error::NumberOutOfRange);
         }
 
         ser::Serializer::serialize_u32(self, v as u32)
@@ -239,7 +239,7 @@ where
     }
 
     fn serialize_seq(self, len: Option<usize>) -> Result<Self::SerializeSeq> {
-        let len = len.ok_or(ErrorKind::SequenceMustHaveLength)?;
+        let len = len.ok_or(Error::SequenceMustHaveLength)?;
         self.add_usize_as_u32(len)?;
         Ok(SizeCompound { ser: self })
     }
@@ -268,7 +268,7 @@ where
     }
 
     fn serialize_map(self, _len: Option<usize>) -> Result<Self::SerializeMap> {
-        Err(ErrorKind::TypeNotSupported.into())
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_struct(self, _name: &'static str, _len: usize) -> Result<Self::SerializeStruct> {
