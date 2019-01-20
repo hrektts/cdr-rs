@@ -1,4 +1,5 @@
 //! Measuring the size of (de)serialized data.
+//! Measuring the size of (de)serialized data.
 
 use std;
 
@@ -76,25 +77,38 @@ struct SizeChecker<S> {
     pos: usize,
 }
 
+macro_rules! add_value  {
+    ($own:expr, $T:ty) => {{
+        add_padding_of!($own, $T)?;
+        // Compiler-hint return type
+        let result: Result<()> = $own.add_size(std::mem::size_of::<$T>() as u64);
+        result
+    }};
+}
+
+macro_rules! add_padding_of {
+    ($own:expr, $T:ty) => {{
+        const ALIGNMENT: usize = std::mem::size_of::<$T>();
+        const REM_MASK: usize = ALIGNMENT - 1; // mask like 0x0, 0x1, 0x3, 0x7
+        match ($own.pos as usize) & REM_MASK {
+            0 => Ok(()),
+            n @ 1...7 => {
+                let amt = ALIGNMENT - n;
+                // Compiler-hint return type
+                let result: Result<()> = $own.add_size(amt as u64);
+                result
+            }
+            _ => unreachable!(),
+        }
+    }};
+}
+
 impl<S> SizeChecker<S>
 where
     S: SizeLimit,
 {
     pub fn new(counter: S) -> SizeChecker<S> {
         SizeChecker { counter, pos: 0 }
-    }
-
-    fn add_padding_of<T>(&mut self) -> Result<()> {
-        let alignment = std::mem::size_of::<T>();
-        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
-        match (self.pos as usize) & rem_mask {
-            0 => Ok(()),
-            n @ 1...7 => {
-                let amt = alignment - n;
-                self.add_size(amt as u64)
-            }
-            _ => unreachable!(),
-        }
     }
 
     fn add_size(&mut self, size: u64) -> Result<()> {
@@ -110,10 +124,7 @@ where
         ser::Serializer::serialize_u32(self, v as u32)
     }
 
-    fn add_value<T>(&mut self, _v: T) -> Result<()> {
-        self.add_padding_of::<T>()?;
-        self.add_size(std::mem::size_of::<T>() as u64)
-    }
+
 }
 
 impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
@@ -131,72 +142,73 @@ where
     type SerializeStructVariant = SizeCompound<'a, S>;
 
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok> {
-        self.add_value(0u8)
+        add_value!(self, u8)
     }
 
-    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_u8(self, _v: u8) -> Result<Self::Ok> {
+        add_value!(self, u8)
     }
 
-    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_u16(self, _v: u16) -> Result<Self::Ok> {
+        add_value!(self, u16)
     }
 
-    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_u32(self, _v: u32) -> Result<Self::Ok> {
+        add_value!(self, u32)
     }
 
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_u64(self, _v: u64) -> Result<Self::Ok> {
+        add_value!(self, u64)
     }
 
-    fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_i8(self, _v: i8) -> Result<Self::Ok> {
+        add_value!(self, i8)
     }
 
-    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_i16(self, _v: i16) -> Result<Self::Ok> {
+        add_value!(self, i16)
     }
 
-    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_i32(self, _v: i32) -> Result<Self::Ok> {
+        add_value!(self, i32)
     }
 
-    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_i64(self, _v: i64) -> Result<Self::Ok> {
+        add_value!(self, i64)
     }
 
-    fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_f32(self, _v: f32) -> Result<Self::Ok> {
+        add_value!(self, f32)
     }
 
-    fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.add_value(v)
+    fn serialize_f64(self, _v: f64) -> Result<Self::Ok> {
+        add_value!(self, f64)
     }
 
-    fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        self.add_size(v.len_utf8() as u64)
+    fn serialize_char(self, _v: char) -> Result<Self::Ok> {
+        add_value!(self, u8)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
-        self.add_value(0 as u32)?;
+        add_value!(self, u32)?;
         self.add_size(v.len() as u64 + 1) // adds the length 1 of a terminating character
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
-        self.add_value(0 as u32)?;
+        add_value!(self, u32)?;
         self.add_size(v.len() as u64)
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        self.add_value(0 as u8)
+        //none
+        Ok(())
     }
 
     fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
-        self.add_value(1 as u8)?;
+        add_value!(self, u8)?;
         v.serialize(self)
     }
 
