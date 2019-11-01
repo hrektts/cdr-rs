@@ -80,16 +80,12 @@ impl<S> SizeChecker<S>
 where
     S: SizeLimit,
 {
-    pub fn new(counter: S) -> SizeChecker<S> {
-        SizeChecker { counter, pos: 0 }
-    }
-
     fn add_padding_of<T>(&mut self) -> Result<()> {
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
         match (self.pos as usize) & rem_mask {
             0 => Ok(()),
-            n @ 1...7 => {
+            n @ 1..=7 => {
                 let amt = alignment - n;
                 self.add_size(amt as u64)
             }
