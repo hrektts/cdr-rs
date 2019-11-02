@@ -39,7 +39,7 @@ where
         let mut padding: [u8; 8] = [0; 8];
         match (self.pos as usize) & rem_mask {
             0 => Ok(()),
-            n @ 1...7 => {
+            n @ 1..=7 => {
                 let amt = alignment - n;
                 self.read_size(amt as u64)?;
                 self.reader

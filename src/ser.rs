@@ -52,7 +52,7 @@ where
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
         match (self.pos as usize) & rem_mask {
             0 => Ok(()),
-            n @ 1...7 => {
+            n @ 1..=7 => {
                 let amt = alignment - n;
                 self.pos += amt as u64;
                 self.writer.write_all(&PADDING[..amt]).map_err(Into::into)
