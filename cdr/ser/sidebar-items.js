@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["serialize_data","Serializes a serializable object into a `Vec` of bytes."],["serialize_data_into","Serializes an object directly into a `Write`."]],"struct":[["Serializer","A serializer that writes values into a buffer."]]});
