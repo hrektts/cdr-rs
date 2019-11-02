@@ -13,7 +13,7 @@ Add this to your Cargo.toml:
 
 ``` toml
 [dependencies]
-cdr = "0.2.2"
+cdr = "0.2.3"
 ```
 
 ## License

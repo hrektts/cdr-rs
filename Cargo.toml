@@ -1,6 +1,6 @@
 [package]
 name = "cdr"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Katsutoshi Horie <mps299792458@gmail.com>"]
 description = """
 A serialization/deserialization implementation of Common Data Representation
