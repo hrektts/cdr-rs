@@ -49,14 +49,22 @@ where
         // Instead of using the slow modulo operation '%', the faster bit-masking is used
         const PADDING: [u8; 8] = [0; 8];
         let alignment = std::mem::size_of::<T>();
-        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
-        match (self.pos as usize) & rem_mask {
+       
+        match self.padding_length(self.pos, alignment) {
             0 => Ok(()),
-            n @ 1..=7 => {
-                let amt = alignment - n;
+            amt @ 1..=7 => {
                 self.pos += amt as u64;
                 self.writer.write_all(&PADDING[..amt]).map_err(Into::into)
             }
+            _ => unreachable!(),
+        }
+    }
+
+    fn padding_length(&self, pos: u64, alignment: usize) -> usize {
+        let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
+        match (pos as usize) & rem_mask {
+            0 => 0,
+            n @ 1..=7 => alignment - n,
             _ => unreachable!(),
         }
     }
