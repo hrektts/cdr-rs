@@ -172,9 +172,9 @@ where
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
-        let l = v.len();
-        self.write_usize_as_u32(l)?;
-        self.add_pos(l as u64);
+        // let l = v.len();
+        // self.write_usize_as_u32(l)?;
+        // self.add_pos(l as u64);
         self.writer.write_all(v).map_err(Into::into)
     }
 
