@@ -70,7 +70,7 @@ where
     fn read_vec(&mut self) -> Result<Vec<u8>> {
         let len: u32 = de::Deserialize::deserialize(&mut *self)?;
         let mut buf = Vec::with_capacity(len as usize);
-        unsafe { buf.set_len(len as usize) }
+        buf.resize(len as usize, 0);
         self.read_size(u64::from(len))?;
         self.reader.read_exact(&mut buf[..])?;
         Ok(buf)
