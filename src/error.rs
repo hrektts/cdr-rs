@@ -52,25 +52,12 @@ impl Display for Error {
 }
 
 impl std::error::Error for Error {
-    fn description(&self) -> &str {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use Error::*;
 
         match *self {
-            Io(ref err) => err.description(),
-            InvalidUtf8Encoding(ref err) => err.description(),
-            _ => {
-                // If you want a better message, use Display::fmt or to_string().
-                "CDR error"
-            }
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        use Error::*;
-
-        match *self {
-            Io(ref err) => Some(err),
-            InvalidUtf8Encoding(ref err) => Some(err),
+            Io(ref e) => Some(e),
+            InvalidUtf8Encoding(ref e) => Some(e),
             _ => None,
         }
     }
