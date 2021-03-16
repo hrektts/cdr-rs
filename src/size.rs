@@ -1,7 +1,5 @@
 //! Measuring the size of (de)serialized data.
 
-use std;
-
 use serde::ser;
 
 use crate::error::{Error, Result};
@@ -175,24 +173,24 @@ where
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
-        self.add_value(0 as u32)?;
+        self.add_value(0_u32)?;
         self.add_size(v.len() as u64 + 1) // adds the length 1 of a terminating character
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
-        self.add_value(0 as u32)?;
+        self.add_value(0_u32)?;
         self.add_size(v.len() as u64)
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        self.add_value(0 as u8)
+        self.add_value(0_u8)
     }
 
     fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
-        self.add_value(1 as u8)?;
+        self.add_value(1_u8)?;
         v.serialize(self)
     }
 
