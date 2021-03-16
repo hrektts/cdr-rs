@@ -15,7 +15,6 @@
 //! #[derive(Deserialize, Serialize, PartialEq)]
 //! struct Polygon(Vec<Point>);
 //!
-//! fn main() {
 //!     let triangle = Polygon(vec![Point { x: -1.0, y: -1.0 },
 //!                                 Point { x: 1.0, y: -1.0 },
 //!                                 Point { x: 0.0, y: 0.73 }]);
@@ -24,7 +23,7 @@
 //!     let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
 //!
 //!     assert!(triangle == decoded);
-//! }
+
 //! ```
 
 pub use byteorder::{BigEndian, LittleEndian};
