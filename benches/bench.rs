@@ -4,6 +4,7 @@ extern crate test;
 
 use test::Bencher;
 
+use bincode;
 use serde_derive::{Deserialize, Serialize};
 
 // cf. https://polysync.io/download/polysync-safety_and_serialization.pdf
@@ -68,6 +69,15 @@ fn lidar_point_msg_without_encapsulation(b: &mut Bencher) {
         let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
         let _decoded =
             cdr::de::deserialize_data::<LidarPointsMsg, BigEndian>(&encoded[..]).unwrap();
+    });
+}
+
+#[bench]
+fn lidar_point_msg_bincode(b: &mut Bencher) {
+    let msg = compose_lidar_points_msg();
+    b.iter(|| {
+        let encoded = bincode::serialize(&msg).unwrap();
+        let _decoded = bincode::deserialize::<LidarPointsMsg>(&encoded[..]).unwrap();
     });
 }
 
@@ -145,5 +155,14 @@ fn string_msg_without_encapsulation(b: &mut Bencher) {
     b.iter(|| {
         let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
         let _decoded = cdr::de::deserialize_data::<String, BigEndian>(&encoded[..]).unwrap();
+    });
+}
+
+#[bench]
+fn string_msg_bincode(b: &mut Bencher) {
+    let msg = compose_string_msg();
+    b.iter(|| {
+        let encoded = bincode::serialize(&msg).unwrap();
+        let _decoded = bincode::deserialize::<String>(&encoded[..]).unwrap();
     });
 }
