@@ -802,14 +802,6 @@ fn test_unsupported() {
         &None::<usize>,
         Infinite,
     ));
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
-        &HashMap::<usize, usize>::new(),
-        Infinite,
-    ));
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
-        &BTreeMap::<usize, usize>::new(),
-        Infinite,
-    ));
 
     check_error_kind(cdr::de::deserialize_data::<Option<usize>, BigEndian>(
         &Vec::new().as_slice(),
