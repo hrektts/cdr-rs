@@ -70,6 +70,15 @@ where
     }
 }
 
+macro_rules! impl_serialize_value {
+    ($ser_method:ident($ty:ty) = $writer_method:ident()) => {
+        fn $ser_method(self, v: $ty) -> Result<Self::Ok> {
+            self.set_pos_of::<$ty>()?;
+            self.writer.$writer_method::<E>(v).map_err(Into::into)
+        }
+    };
+}
+
 impl<'a, W, E> ser::Serializer for &'a mut Serializer<W, E>
 where
     W: Write,
@@ -87,29 +96,7 @@ where
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
         self.set_pos_of::<bool>()?;
-        self.writer
-            .write_u8(if v { 1 } else { 0 })
-            .map_err(Into::into)
-    }
-
-    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.set_pos_of::<u8>()?;
-        self.writer.write_u8(v).map_err(Into::into)
-    }
-
-    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.set_pos_of::<u16>()?;
-        self.writer.write_u16::<E>(v).map_err(Into::into)
-    }
-
-    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.set_pos_of::<u32>()?;
-        self.writer.write_u32::<E>(v).map_err(Into::into)
-    }
-
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        self.set_pos_of::<u64>()?;
-        self.writer.write_u64::<E>(v).map_err(Into::into)
+        self.writer.write_u8(v as u8).map_err(Into::into)
     }
 
     fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
@@ -117,30 +104,21 @@ where
         self.writer.write_i8(v).map_err(Into::into)
     }
 
-    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.set_pos_of::<i16>()?;
-        self.writer.write_i16::<E>(v).map_err(Into::into)
+    impl_serialize_value! { serialize_i16(i16) = write_i16() }
+    impl_serialize_value! { serialize_i32(i32) = write_i32() }
+    impl_serialize_value! { serialize_i64(i64) = write_i64() }
+
+    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
+        self.set_pos_of::<u8>()?;
+        self.writer.write_u8(v).map_err(Into::into)
     }
 
-    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.set_pos_of::<i32>()?;
-        self.writer.write_i32::<E>(v).map_err(Into::into)
-    }
+    impl_serialize_value! { serialize_u16(u16) = write_u16() }
+    impl_serialize_value! { serialize_u32(u32) = write_u32() }
+    impl_serialize_value! { serialize_u64(u64) = write_u64() }
 
-    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.set_pos_of::<i64>()?;
-        self.writer.write_i64::<E>(v).map_err(Into::into)
-    }
-
-    fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.set_pos_of::<f32>()?;
-        self.writer.write_f32::<E>(v).map_err(Into::into)
-    }
-
-    fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.set_pos_of::<f64>()?;
-        self.writer.write_f64::<E>(v).map_err(Into::into)
-    }
+    impl_serialize_value! { serialize_f32(f32) = write_f32() }
+    impl_serialize_value! { serialize_f64(f64) = write_f64() }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
         if !v.is_ascii() {
