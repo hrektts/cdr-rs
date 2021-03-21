@@ -143,24 +143,27 @@ where
     }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        let width = v.len_utf8();
-        if width != 1 {
+        if !v.is_ascii() {
             Err(Error::InvalidChar(v))
         } else {
             let mut buf = [0u8; 1];
             v.encode_utf8(&mut buf);
-            self.add_pos(width as u64);
-            self.writer.write_all(&buf[..width]).map_err(Into::into)
+            self.add_pos(1);
+            self.writer.write_all(&buf).map_err(Into::into)
         }
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
-        let terminating_char = [0u8];
-        let l = v.len() + terminating_char.len();
-        self.write_usize_as_u32(l)?;
-        self.add_pos(l as u64);
-        self.writer.write_all(v.as_bytes())?;
-        self.writer.write_all(&terminating_char).map_err(Into::into)
+        if !v.is_ascii() {
+            Err(Error::InvalidString(v.into()))
+        } else {
+            let terminating_char = [0u8];
+            let l = v.len() + terminating_char.len();
+            self.write_usize_as_u32(l)?;
+            self.add_pos(l as u64);
+            self.writer.write_all(v.as_bytes())?;
+            self.writer.write_all(&terminating_char).map_err(Into::into)
+        }
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok> {
@@ -509,6 +512,13 @@ mod tests {
     }
 
     #[test]
+    fn serialize_wchar() {
+        let v = 'Å';
+        assert!(serialize_data::<_, _, BigEndian>(&v, Infinite).is_err());
+        assert!(serialize_data::<_, _, LittleEndian>(&v, Infinite).is_err());
+    }
+
+    #[test]
     fn serialize_ushort() {
         let v = 65500u16;
         assert_eq!(
@@ -644,6 +654,13 @@ mod tests {
                 0x20, 0x74, 0x65, 0x73, 0x74, 0x00,
             ]
         );
+    }
+
+    #[test]
+    fn serialize_wstring() {
+        let v = "みなさんこんにちは。これはテストです。";
+        assert!(serialize_data::<_, _, BigEndian>(&v, Infinite).is_err());
+        assert!(serialize_data::<_, _, LittleEndian>(&v, Infinite).is_err());
     }
 
     #[test]

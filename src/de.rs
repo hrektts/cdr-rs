@@ -202,11 +202,10 @@ where
         let mut buf = [0u8; 4];
         self.reader.read_exact(&mut buf[..1])?;
 
-        let width = utf8_char_width(buf[0]);
-        if width != 1 {
+        if utf8_char_width(buf[0]) != 1 {
             Err(Error::InvalidCharEncoding)
         } else {
-            self.read_size(width as u64)?;
+            self.read_size(1)?;
             visitor.visit_char(buf[0] as char)
         }
     }

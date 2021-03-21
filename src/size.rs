@@ -168,8 +168,8 @@ where
         self.add_value(v)
     }
 
-    fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        self.add_size(v.len_utf8() as u64)
+    fn serialize_char(self, _v: char) -> Result<Self::Ok> {
+        self.add_size(1)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {

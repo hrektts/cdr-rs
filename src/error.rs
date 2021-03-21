@@ -19,6 +19,7 @@ pub enum Error {
     InvalidCharEncoding,
     InvalidEncapsulation,
     InvalidUtf8Encoding(Utf8Error),
+    InvalidString(String),
     NumberOutOfRange,
     SequenceMustHaveLength,
     SizeLimit,
@@ -41,6 +42,9 @@ impl Display for Error {
             InvalidCharEncoding => write!(f, "char is not valid UTF-8"),
             InvalidEncapsulation => write!(f, "encapsulation is not valid"),
             InvalidUtf8Encoding(ref err) => Display::fmt(err, f),
+            InvalidString(ref s) => {
+                write!(f, "each character must have a length of 1, given \"{}\"", s)
+            }
             NumberOutOfRange => write!(f, "sequence is too long"),
             SequenceMustHaveLength => {
                 write!(f, "sequences must have a knowable size ahead of time")
