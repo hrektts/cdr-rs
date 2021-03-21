@@ -4,8 +4,7 @@ A serialization/deserialization implementation for Common Data Representation in
 
 [![Build Status](https://travis-ci.org/hrektts/cdr-rs.svg?branch=master)](https://travis-ci.org/hrektts/cdr-rs)
 [![Crates.io](https://img.shields.io/crates/v/cdr.svg?maxAge=2592000)](https://crates.io/crates/cdr)
-
-[Documentation](https://docs.rs/cdr)
+[![Docs.rs](https://docs.rs/cdr/badge.svg)](https://docs.rs/cdr)
 
 ## Usage
 
