@@ -110,6 +110,14 @@ where
     }
 }
 
+macro_rules! impl_serialize_value {
+    ($ser_method:ident($ty:ty)) => {
+        fn $ser_method(self, v: $ty) -> Result<Self::Ok> {
+            self.add_value(v)
+        }
+    };
+}
+
 impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
 where
     S: SizeLimit,
@@ -128,48 +136,21 @@ where
         self.add_value(0u8)
     }
 
-    fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
+    impl_serialize_value! { serialize_i8(i8) }
+    impl_serialize_value! { serialize_i16(i16) }
+    impl_serialize_value! { serialize_i32(i32) }
+    impl_serialize_value! { serialize_i64(i64) }
 
-    fn serialize_u16(self, v: u16) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
+    impl_serialize_value! { serialize_u8(u8) }
+    impl_serialize_value! { serialize_u16(u16) }
+    impl_serialize_value! { serialize_u32(u32) }
+    impl_serialize_value! { serialize_u64(u64) }
 
-    fn serialize_u32(self, v: u32) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
+    impl_serialize_value! { serialize_f32(f32) }
+    impl_serialize_value! { serialize_f64(f64) }
 
-    fn serialize_u64(self, v: u64) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_i8(self, v: i8) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_i16(self, v: i16) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_i32(self, v: i32) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_i64(self, v: i64) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_f32(self, v: f32) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_f64(self, v: f64) -> Result<Self::Ok> {
-        self.add_value(v)
-    }
-
-    fn serialize_char(self, v: char) -> Result<Self::Ok> {
-        self.add_size(v.len_utf8() as u64)
+    fn serialize_char(self, _v: char) -> Result<Self::Ok> {
+        self.add_size(1)
     }
 
     fn serialize_str(self, v: &str) -> Result<Self::Ok> {
@@ -183,15 +164,14 @@ where
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        self.add_value(0_u8)
+        Err(Error::TypeNotSupported)
     }
 
-    fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
+    fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
-        self.add_value(1_u8)?;
-        v.serialize(self)
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {

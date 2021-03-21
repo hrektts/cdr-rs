@@ -60,14 +60,14 @@ where
     }
 
     fn read_string(&mut self) -> Result<String> {
-        String::from_utf8(self.read_vec().map(|mut v| {
+        String::from_utf8(self.read_bytes().map(|mut v| {
             v.pop(); // removes a terminating null character
             v
         })?)
         .map_err(|e| Error::InvalidUtf8Encoding(e.utf8_error()))
     }
 
-    fn read_vec(&mut self) -> Result<Vec<u8>> {
+    fn read_bytes(&mut self) -> Result<Vec<u8>> {
         let len: u32 = de::Deserialize::deserialize(&mut *self)?;
         let mut buf = vec![0_u8; len as usize];
         self.read_size(u64::from(len))?;
@@ -78,6 +78,19 @@ where
     pub(crate) fn reset_pos(&mut self) {
         self.pos = 0;
     }
+}
+
+macro_rules! impl_deserialize_value {
+    ($de_method:ident<$ty:ty> = $visitor_method:ident ($reader_method:ident)) => {
+        fn $de_method<V>(self, visitor: V) -> Result<V::Value>
+        where
+            V: de::Visitor<'de>,
+        {
+            self.read_padding_of::<$ty>()?;
+            self.read_size_of::<$ty>()?;
+            visitor.$visitor_method(self.reader.$reader_method::<E>()?)
+        }
+    };
 }
 
 impl<'de, 'a, R, S, E> de::Deserializer<'de> for &'a mut Deserializer<R, S, E>
@@ -107,41 +120,6 @@ where
         }
     }
 
-    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_size_of::<u8>()?;
-        visitor.visit_u8(self.reader.read_u8()?)
-    }
-
-    fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<u16>()?;
-        self.read_size_of::<u16>()?;
-        visitor.visit_u16(self.reader.read_u16::<E>()?)
-    }
-
-    fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<u32>()?;
-        self.read_size_of::<u32>()?;
-        visitor.visit_u32(self.reader.read_u32::<E>()?)
-    }
-
-    fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<u64>()?;
-        self.read_size_of::<u64>()?;
-        visitor.visit_u64(self.reader.read_u64::<E>()?)
-    }
-
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
@@ -150,50 +128,24 @@ where
         visitor.visit_i8(self.reader.read_i8()?)
     }
 
-    fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
+    impl_deserialize_value!(deserialize_i16<i16> = visit_i16(read_i16));
+    impl_deserialize_value!(deserialize_i32<i32> = visit_i32(read_i32));
+    impl_deserialize_value!(deserialize_i64<i64> = visit_i64(read_i64));
+
+    fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        self.read_padding_of::<i16>()?;
-        self.read_size_of::<i16>()?;
-        visitor.visit_i16(self.reader.read_i16::<E>()?)
+        self.read_size_of::<u8>()?;
+        visitor.visit_u8(self.reader.read_u8()?)
     }
 
-    fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<i32>()?;
-        self.read_size_of::<i32>()?;
-        visitor.visit_i32(self.reader.read_i32::<E>()?)
-    }
+    impl_deserialize_value!(deserialize_u16<u16> = visit_u16(read_u16));
+    impl_deserialize_value!(deserialize_u32<u32> = visit_u32(read_u32));
+    impl_deserialize_value!(deserialize_u64<u64> = visit_u64(read_u64));
 
-    fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<i64>()?;
-        self.read_size_of::<i64>()?;
-        visitor.visit_i64(self.reader.read_i64::<E>()?)
-    }
-
-    fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<f32>()?;
-        self.read_size_of::<f32>()?;
-        visitor.visit_f32(self.reader.read_f32::<E>()?)
-    }
-
-    fn deserialize_f64<V>(self, visitor: V) -> Result<V::Value>
-    where
-        V: de::Visitor<'de>,
-    {
-        self.read_padding_of::<f64>()?;
-        self.read_size_of::<f64>()?;
-        visitor.visit_f64(self.reader.read_f64::<E>()?)
-    }
+    impl_deserialize_value!(deserialize_f32<f32> = visit_f32(read_f32));
+    impl_deserialize_value!(deserialize_f64<f64> = visit_f64(read_f64));
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
     where
@@ -202,11 +154,10 @@ where
         let mut buf = [0u8; 4];
         self.reader.read_exact(&mut buf[..1])?;
 
-        let width = utf8_char_width(buf[0]);
-        if width != 1 {
+        if utf8_char_width(buf[0]) != 1 {
             Err(Error::InvalidCharEncoding)
         } else {
-            self.read_size(width as u64)?;
+            self.read_size(1)?;
             visitor.visit_char(buf[0] as char)
         }
     }
@@ -229,14 +180,14 @@ where
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_bytes(&self.read_vec()?)
+        visitor.visit_bytes(&self.read_bytes()?)
     }
 
     fn deserialize_byte_buf<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        visitor.visit_byte_buf(self.read_vec()?)
+        visitor.visit_byte_buf(self.read_bytes()?)
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
