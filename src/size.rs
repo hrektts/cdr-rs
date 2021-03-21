@@ -183,15 +183,14 @@ where
     }
 
     fn serialize_none(self) -> Result<Self::Ok> {
-        self.add_value(0_u8)
+        Err(Error::TypeNotSupported)
     }
 
-    fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok>
+    fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
     where
         T: ser::Serialize,
     {
-        self.add_value(1_u8)?;
-        v.serialize(self)
+        Err(Error::TypeNotSupported)
     }
 
     fn serialize_unit(self) -> Result<Self::Ok> {
