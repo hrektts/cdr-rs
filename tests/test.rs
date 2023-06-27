@@ -486,13 +486,13 @@ fn test_double_alignment() {
 #[test]
 fn test_seq_octet() {
     check(Vec::<u8>::new(), Some(4));
-    check(vec![0u8, 1, 2], Some(4 + 1 * 3));
+    check(vec![0u8, 1, 2], Some(4 + 3));
 }
 
 #[test]
 fn test_seq_char() {
     check(Vec::<char>::new(), Some(4));
-    check(vec!['a', 'b', 'c'], Some(4 + 1 * 3));
+    check(vec!['a', 'b', 'c'], Some(4 + 3));
 }
 
 #[test]
@@ -546,7 +546,7 @@ fn test_seq_double() {
 #[test]
 fn test_seq_bool() {
     check(Vec::<bool>::new(), Some(4));
-    check(vec![false, true, false], Some(4 + 1 * 3));
+    check(vec![false, true, false], Some(4 + 3));
 }
 
 #[test]
@@ -642,14 +642,20 @@ fn test_array_string() {
 #[test]
 fn test_array_in_array() {
     check([[]] as [[usize; 0]; 1], Some(0));
-    check([[3.14f64, 2.71, 1.41], [1.73, 2.23, 2.44]], Some(48));
+    check(
+        [[std::f64::consts::PI, 2.71, 1.41], [1.73, 2.23, 2.44]],
+        Some(48),
+    );
 }
 
 #[test]
 fn test_tuple() {
     check((1u32,), Some(4));
     check((1u32, 2i32), Some(4 + 4));
-    check((1u16, 2i16, 3.14f32, "hi".to_string()), Some(2 + 2 + 4 + 7));
+    check(
+        (1u16, 2i16, std::f32::consts::PI, "hi".to_string()),
+        Some(2 + 2 + 4 + 7),
+    );
 }
 
 #[test]
