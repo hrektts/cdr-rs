@@ -230,9 +230,9 @@ where
     where
         V: de::Visitor<'de>,
     {
-        struct Access<'a, R: 'a, S: 'a, E: 'a>
+        struct Access<'a, R, S: 'a, E: 'a>
         where
-            R: Read,
+            R: Read + 'a,
             S: SizeLimit,
             E: ByteOrder,
         {
@@ -240,9 +240,9 @@ where
             len: usize,
         }
 
-        impl<'de, 'a, R: 'a, S, E> de::SeqAccess<'de> for Access<'a, R, S, E>
+        impl<'de, 'a, R, S, E> de::SeqAccess<'de> for Access<'a, R, S, E>
         where
-            R: Read,
+            R: Read + 'a,
             S: SizeLimit,
             E: ByteOrder,
         {
@@ -312,9 +312,9 @@ where
     where
         V: de::Visitor<'de>,
     {
-        impl<'de, 'a, R: 'a, S, E> de::EnumAccess<'de> for &'a mut Deserializer<R, S, E>
+        impl<'de, 'a, R, S, E> de::EnumAccess<'de> for &'a mut Deserializer<R, S, E>
         where
-            R: Read,
+            R: Read + 'a,
             S: SizeLimit,
             E: ByteOrder,
         {
