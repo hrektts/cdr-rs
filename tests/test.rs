@@ -812,12 +812,12 @@ fn test_unsupported() {
     ));
 
     check_error_kind(cdr::de::deserialize_data::<Option<usize>, BigEndian>(
-        &Vec::new().as_slice(),
+        Vec::new().as_slice(),
     ));
     check_error_kind(
-        cdr::de::deserialize_data::<HashMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+        cdr::de::deserialize_data::<HashMap<usize, usize>, BigEndian>(Vec::new().as_slice()),
     );
     check_error_kind(
-        cdr::de::deserialize_data::<BTreeMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+        cdr::de::deserialize_data::<BTreeMap<usize, usize>, BigEndian>(Vec::new().as_slice()),
     );
 }
