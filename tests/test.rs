@@ -565,84 +565,72 @@ fn test_seq_in_seq() {
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_octet() {
     check([] as [u8; 0], Some(0));
     check([0u8, 1, 2], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_char() {
     check([] as [char; 0], Some(0));
     check(['a', 'b', 'c'], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_short() {
     check([] as [u16; 0], Some(0));
     check([0u16, 1, 2], Some(6));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_short() {
     check([] as [i16; 0], Some(0));
     check([0i16, 1, 2], Some(6));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_long() {
     check([] as [u32; 0], Some(0));
     check([0u32, 1, 2], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_long() {
     check([] as [i32; 0], Some(0));
     check([0i32, 1, 2], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_long_long() {
     check([] as [u64; 0], Some(0));
     check([0u64, 1, 2], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_long_long() {
     check([] as [i64; 0], Some(0));
     check([0i64, 1, 2], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_float() {
     check([] as [f32; 0], Some(0));
     check([0f32, 1., 2.], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_double() {
     check([] as [f64; 0], Some(0));
     check([0f64, 1., 2.], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_bool() {
     check([] as [bool; 0], Some(0));
     check([false, true, false], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_string() {
     check([] as [String; 0], Some(0));
     check(
@@ -652,7 +640,6 @@ fn test_array_string() {
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_in_array() {
     check([[]] as [[usize; 0]; 1], Some(0));
     check([[3.14f64, 2.71, 1.41], [1.73, 2.23, 2.44]], Some(48));
