@@ -38,7 +38,7 @@ where
     T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     let size = match maybe_size {
-        Some(v) => v as u64,
+        Some(v) => v,
         None => cdr::calc_serialized_size(&element),
     };
     {
@@ -160,23 +160,18 @@ where
     T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     if let Some(bound) = calc_invalid_size(element, maybe_size) {
-        assert!(
-            cdr::ser::serialize_data::<_, _, BigEndian>(&element, Bounded(bound as u64)).is_err()
-        );
-        assert!(
-            cdr::ser::serialize_data::<_, _, LittleEndian>(&element, Bounded(bound as u64))
-                .is_err()
-        );
-        assert!(cdr::serialize::<_, _, CdrBe>(&element, Bounded(bound as u64)).is_err());
-        assert!(cdr::serialize::<_, _, CdrLe>(&element, Bounded(bound as u64)).is_err());
-        assert!(cdr::serialize::<_, _, PlCdrBe>(&element, Bounded(bound as u64)).is_err());
-        assert!(cdr::serialize::<_, _, PlCdrLe>(&element, Bounded(bound as u64)).is_err());
+        assert!(cdr::ser::serialize_data::<_, _, BigEndian>(&element, Bounded(bound)).is_err());
+        assert!(cdr::ser::serialize_data::<_, _, LittleEndian>(&element, Bounded(bound)).is_err());
+        assert!(cdr::serialize::<_, _, CdrBe>(&element, Bounded(bound)).is_err());
+        assert!(cdr::serialize::<_, _, CdrLe>(&element, Bounded(bound)).is_err());
+        assert!(cdr::serialize::<_, _, PlCdrBe>(&element, Bounded(bound)).is_err());
+        assert!(cdr::serialize::<_, _, PlCdrLe>(&element, Bounded(bound)).is_err());
         {
             let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&element, Infinite).unwrap();
             let mut encoded = encoded.as_slice();
             assert!(cdr::de::deserialize_data_from::<_, T, _, BigEndian>(
                 &mut encoded,
-                Bounded(bound as u64)
+                Bounded(bound)
             )
             .is_err());
         }
@@ -186,29 +181,29 @@ where
             let mut encoded = encoded.as_slice();
             assert!(cdr::de::deserialize_data_from::<_, T, _, LittleEndian>(
                 &mut encoded,
-                Bounded(bound as u64)
+                Bounded(bound)
             )
             .is_err());
         }
         {
             let encoded = cdr::serialize::<_, _, CdrBe>(&element, Infinite).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound as u64)).is_err());
+            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
         }
         {
             let encoded = cdr::serialize::<_, _, CdrLe>(&element, Infinite).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound as u64)).is_err());
+            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
         }
         {
             let encoded = cdr::serialize::<_, _, PlCdrBe>(&element, Infinite).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound as u64)).is_err());
+            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
         }
         {
             let encoded = cdr::serialize::<_, _, PlCdrLe>(&element, Infinite).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound as u64)).is_err());
+            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
         }
     } else {
         {
@@ -491,13 +486,13 @@ fn test_double_alignment() {
 #[test]
 fn test_seq_octet() {
     check(Vec::<u8>::new(), Some(4));
-    check(vec![0u8, 1, 2], Some(4 + 1 * 3));
+    check(vec![0u8, 1, 2], Some(4 + 3));
 }
 
 #[test]
 fn test_seq_char() {
     check(Vec::<char>::new(), Some(4));
-    check(vec!['a', 'b', 'c'], Some(4 + 1 * 3));
+    check(vec!['a', 'b', 'c'], Some(4 + 3));
 }
 
 #[test]
@@ -551,7 +546,7 @@ fn test_seq_double() {
 #[test]
 fn test_seq_bool() {
     check(Vec::<bool>::new(), Some(4));
-    check(vec![false, true, false], Some(4 + 1 * 3));
+    check(vec![false, true, false], Some(4 + 3));
 }
 
 #[test]
@@ -570,84 +565,72 @@ fn test_seq_in_seq() {
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_octet() {
     check([] as [u8; 0], Some(0));
     check([0u8, 1, 2], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_char() {
     check([] as [char; 0], Some(0));
     check(['a', 'b', 'c'], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_short() {
     check([] as [u16; 0], Some(0));
     check([0u16, 1, 2], Some(6));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_short() {
     check([] as [i16; 0], Some(0));
     check([0i16, 1, 2], Some(6));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_long() {
     check([] as [u32; 0], Some(0));
     check([0u32, 1, 2], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_long() {
     check([] as [i32; 0], Some(0));
     check([0i32, 1, 2], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_unsigned_long_long() {
     check([] as [u64; 0], Some(0));
     check([0u64, 1, 2], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_long_long() {
     check([] as [i64; 0], Some(0));
     check([0i64, 1, 2], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_float() {
     check([] as [f32; 0], Some(0));
     check([0f32, 1., 2.], Some(12));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_double() {
     check([] as [f64; 0], Some(0));
     check([0f64, 1., 2.], Some(24));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_bool() {
     check([] as [bool; 0], Some(0));
     check([false, true, false], Some(3));
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_string() {
     check([] as [String; 0], Some(0));
     check(
@@ -657,17 +640,22 @@ fn test_array_string() {
 }
 
 #[test]
-#[allow(const_err)]
 fn test_array_in_array() {
     check([[]] as [[usize; 0]; 1], Some(0));
-    check([[3.14f64, 2.71, 1.41], [1.73, 2.23, 2.44]], Some(48));
+    check(
+        [[std::f64::consts::PI, 2.71, 1.41], [1.73, 2.23, 2.44]],
+        Some(48),
+    );
 }
 
 #[test]
 fn test_tuple() {
     check((1u32,), Some(4));
     check((1u32, 2i32), Some(4 + 4));
-    check((1u16, 2i16, 3.14f32, "hi".to_string()), Some(2 + 2 + 4 + 7));
+    check(
+        (1u16, 2i16, std::f32::consts::PI, "hi".to_string()),
+        Some(2 + 2 + 4 + 7),
+    );
 }
 
 #[test]
@@ -812,12 +800,12 @@ fn test_unsupported() {
     ));
 
     check_error_kind(cdr::de::deserialize_data::<Option<usize>, BigEndian>(
-        &Vec::new().as_slice(),
+        Vec::new().as_slice(),
     ));
     check_error_kind(
-        cdr::de::deserialize_data::<HashMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+        cdr::de::deserialize_data::<HashMap<usize, usize>, BigEndian>(Vec::new().as_slice()),
     );
     check_error_kind(
-        cdr::de::deserialize_data::<BTreeMap<usize, usize>, BigEndian>(&Vec::new().as_slice()),
+        cdr::de::deserialize_data::<BTreeMap<usize, usize>, BigEndian>(Vec::new().as_slice()),
     );
 }

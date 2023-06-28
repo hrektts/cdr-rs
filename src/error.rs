@@ -51,7 +51,7 @@ impl serde::de::Error for Error {
     where
         T: fmt::Display,
     {
-        Error::Message(msg.to_string())
+        Self::Message(msg.to_string())
     }
 }
 
@@ -60,6 +60,6 @@ impl serde::ser::Error for Error {
     where
         T: fmt::Display,
     {
-        Error::Message(msg.to_string())
+        Self::Message(msg.to_string())
     }
 }

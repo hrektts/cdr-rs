@@ -81,7 +81,7 @@ where
     fn add_padding_of<T>(&mut self) -> Result<()> {
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
-        match (self.pos as usize) & rem_mask {
+        match self.pos & rem_mask {
             0 => Ok(()),
             n @ 1..=7 => {
                 let amt = alignment - n;
@@ -167,9 +167,9 @@ where
         Err(Error::TypeNotSupported)
     }
 
-    fn serialize_some<T: ?Sized>(self, _v: &T) -> Result<Self::Ok>
+    fn serialize_some<T>(self, _v: &T) -> Result<Self::Ok>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         Err(Error::TypeNotSupported)
     }
@@ -191,14 +191,14 @@ where
         self.serialize_u32(variant_index)
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
+    fn serialize_newtype_struct<T>(self, _name: &'static str, value: &T) -> Result<Self::Ok>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(self)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _name: &'static str,
         variant_index: u32,
@@ -206,7 +206,7 @@ where
         value: &T,
     ) -> Result<Self::Ok>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         self.serialize_u32(variant_index)?;
         value.serialize(self)
@@ -278,9 +278,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -299,9 +299,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_element<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_element<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -320,9 +320,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -341,9 +341,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -362,17 +362,17 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<()>
+    fn serialize_key<T>(&mut self, key: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         key.serialize(&mut *self.ser)
     }
 
     #[inline]
-    fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_value<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -391,9 +391,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -412,9 +412,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, _key: &'static str, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }
@@ -426,9 +426,9 @@ where
 }
 
 /// Returns the size that an object would be if serialized.
-pub fn calc_serialized_data_size<T: ?Sized>(value: &T) -> u64
+pub fn calc_serialized_data_size<T>(value: &T) -> u64
 where
-    T: ser::Serialize,
+    T: ser::Serialize + ?Sized,
 {
     let mut checker = SizeChecker {
         counter: Counter {
@@ -444,9 +444,9 @@ where
 
 /// Given a maximum size limit, check how large an object would be if it were
 /// to be serialized.
-pub fn calc_serialized_data_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u64>
+pub fn calc_serialized_data_size_bounded<T>(value: &T, max: u64) -> Result<u64>
 where
-    T: ser::Serialize,
+    T: ser::Serialize + ?Sized,
 {
     let mut checker = SizeChecker {
         counter: Bounded(max),

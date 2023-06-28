@@ -230,19 +230,19 @@ where
     where
         V: de::Visitor<'de>,
     {
-        struct Access<'a, R: 'a, S: 'a, E: 'a>
+        struct Access<'a, R, S, E>
         where
-            R: Read,
-            S: SizeLimit,
-            E: ByteOrder,
+            R: Read + 'a,
+            S: SizeLimit + 'a,
+            E: ByteOrder + 'a,
         {
             deserializer: &'a mut Deserializer<R, S, E>,
             len: usize,
         }
 
-        impl<'de, 'a, R: 'a, S, E> de::SeqAccess<'de> for Access<'a, R, S, E>
+        impl<'de, 'a, R, S, E> de::SeqAccess<'de> for Access<'a, R, S, E>
         where
-            R: Read,
+            R: Read + 'a,
             S: SizeLimit,
             E: ByteOrder,
         {
@@ -312,9 +312,9 @@ where
     where
         V: de::Visitor<'de>,
     {
-        impl<'de, 'a, R: 'a, S, E> de::EnumAccess<'de> for &'a mut Deserializer<R, S, E>
+        impl<'de, 'a, R, S, E> de::EnumAccess<'de> for &'a mut Deserializer<R, S, E>
         where
-            R: Read,
+            R: Read + 'a,
             S: SizeLimit,
             E: ByteOrder,
         {
@@ -389,7 +389,7 @@ where
 
 impl<R, S> From<Deserializer<R, S, BigEndian>> for Deserializer<R, S, LittleEndian> {
     fn from(t: Deserializer<R, S, BigEndian>) -> Self {
-        Deserializer::<R, S, LittleEndian> {
+        Self {
             reader: t.reader,
             size_limit: t.size_limit,
             pos: t.pos,
