@@ -16,8 +16,8 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.4.3"
-serde = "1.0.124"
+serde = "1.0.164"
 
 [dev-dependencies]
 bincode = "1.3.1"
-serde_derive = "1.0.124"
+serde_derive = "1.0.164"
