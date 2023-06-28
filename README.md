@@ -2,7 +2,7 @@
 
 A serialization/deserialization implementation for Common Data Representation in Rust.
 
-[![Build Status](https://travis-ci.org/hrektts/cdr-rs.svg?branch=master)](https://travis-ci.org/hrektts/cdr-rs)
+[![CI](https://github.com/hrektts/cdr-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/hrektts/cdr-rs/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/cdr.svg?maxAge=2592000)](https://crates.io/crates/cdr)
 [![Docs.rs](https://docs.rs/cdr/badge.svg)](https://docs.rs/cdr)
 
