@@ -389,7 +389,7 @@ where
 
 impl<R, S> From<Deserializer<R, S, BigEndian>> for Deserializer<R, S, LittleEndian> {
     fn from(t: Deserializer<R, S, BigEndian>) -> Self {
-        Deserializer::<R, S, LittleEndian> {
+        Self {
             reader: t.reader,
             size_limit: t.size_limit,
             pos: t.pos,
