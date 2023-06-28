@@ -17,6 +17,7 @@ edition = "2018"
 [dependencies]
 byteorder = "1.4.3"
 serde = "1.0.164"
+thiserror = "1.0.40"
 
 [dev-dependencies]
 bincode = "1.3.3"
