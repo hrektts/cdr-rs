@@ -43,8 +43,6 @@ pub mod ser;
 pub use crate::ser::Serializer;
 
 pub mod size;
-#[doc(inline)]
-pub use crate::size::{Bounded, Infinite, SizeLimit};
 
 use std::io::{Read, Write};
 

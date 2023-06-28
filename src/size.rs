@@ -4,80 +4,20 @@ use serde::ser;
 
 use crate::error::{Error, Result};
 
-/// Limits on the number of bytes that can be read or written.
-pub trait SizeLimit {
-    fn add(&mut self, n: u64) -> Result<()>;
-    fn limit(&self) -> Option<u64>;
-}
-
-/// A `SizeLimit` that restricts serialized or deserialized messages so that
-/// they do not exceed a certain byte length.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Bounded(pub u64);
-
-impl SizeLimit for Bounded {
-    #[inline]
-    fn add(&mut self, n: u64) -> Result<()> {
-        if self.0 >= n {
-            self.0 -= n;
-            Ok(())
-        } else {
-            Err(Error::SizeLimit)
-        }
-    }
-
-    #[inline]
-    fn limit(&self) -> Option<u64> {
-        Some(self.0)
-    }
-}
-
-/// A `SizeLimit` without a limit.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct Infinite;
-
-impl SizeLimit for Infinite {
-    #[inline]
-    fn add(&mut self, _n: u64) -> Result<()> {
-        Ok(())
-    }
-
-    #[inline]
-    fn limit(&self) -> Option<u64> {
-        None
-    }
-}
-
-struct Counter {
+struct SizeChecker {
     total: u64,
     limit: Option<u64>,
-}
-
-impl SizeLimit for Counter {
-    fn add(&mut self, n: u64) -> Result<()> {
-        self.total += n;
-        if let Some(limit) = self.limit {
-            if self.total > limit {
-                return Err(Error::SizeLimit);
-            }
-        }
-        Ok(())
-    }
-
-    fn limit(&self) -> Option<u64> {
-        unreachable!();
-    }
-}
-
-struct SizeChecker<S> {
-    counter: S,
     pos: usize,
 }
 
-impl<S> SizeChecker<S>
-where
-    S: SizeLimit,
-{
+impl SizeChecker {
+    fn new(limit: Option<u64>) -> Self {
+        Self {
+            total: 0,
+            limit,
+            pos: 0,
+        }
+    }
     fn add_padding_of<T>(&mut self) -> Result<()> {
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
@@ -93,7 +33,15 @@ where
 
     fn add_size(&mut self, size: u64) -> Result<()> {
         self.pos += size as usize;
-        self.counter.add(size)
+        if let Some(limit) = self.limit {
+            if self.total + size > limit {
+                return Err(Error::SizeLimit);
+            }
+        }
+
+        self.total += size;
+
+        Ok(())
     }
 
     fn add_usize_as_u32(&mut self, v: usize) -> Result<()> {
@@ -118,19 +66,16 @@ macro_rules! impl_serialize_value {
     };
 }
 
-impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::Serializer for &'a mut SizeChecker {
     type Ok = ();
     type Error = Error;
-    type SerializeSeq = SizeCompound<'a, S>;
-    type SerializeTuple = SizeCompound<'a, S>;
-    type SerializeTupleStruct = SizeCompound<'a, S>;
-    type SerializeTupleVariant = SizeCompound<'a, S>;
-    type SerializeMap = SizeCompound<'a, S>;
-    type SerializeStruct = SizeCompound<'a, S>;
-    type SerializeStructVariant = SizeCompound<'a, S>;
+    type SerializeSeq = SizeCompound<'a>;
+    type SerializeTuple = SizeCompound<'a>;
+    type SerializeTupleStruct = SizeCompound<'a>;
+    type SerializeTupleVariant = SizeCompound<'a>;
+    type SerializeMap = SizeCompound<'a>;
+    type SerializeStruct = SizeCompound<'a>;
+    type SerializeStructVariant = SizeCompound<'a>;
 
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok> {
         self.add_value(0u8)
@@ -266,14 +211,11 @@ where
 }
 
 #[doc(hidden)]
-pub struct SizeCompound<'a, S: 'a> {
-    ser: &'a mut SizeChecker<S>,
+pub struct SizeCompound<'a> {
+    ser: &'a mut SizeChecker,
 }
 
-impl<'a, S> ser::SerializeSeq for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeSeq for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -291,10 +233,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeTuple for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeTuple for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -312,10 +251,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeTupleStruct for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeTupleStruct for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -333,10 +269,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeTupleVariant for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeTupleVariant for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -354,10 +287,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeMap for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeMap for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -383,10 +313,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeStruct for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeStruct for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -404,10 +331,7 @@ where
     }
 }
 
-impl<'a, S> ser::SerializeStructVariant for SizeCompound<'a, S>
-where
-    S: SizeLimit,
-{
+impl<'a> ser::SerializeStructVariant for SizeCompound<'a> {
     type Ok = ();
     type Error = Error;
 
@@ -430,16 +354,10 @@ pub fn calc_serialized_data_size<T>(value: &T) -> u64
 where
     T: ser::Serialize + ?Sized,
 {
-    let mut checker = SizeChecker {
-        counter: Counter {
-            total: 0,
-            limit: None,
-        },
-        pos: 0,
-    };
+    let mut checker = SizeChecker::new(None);
 
     value.serialize(&mut checker).ok();
-    checker.counter.total
+    checker.total
 }
 
 /// Given a maximum size limit, check how large an object would be if it were
@@ -448,13 +366,8 @@ pub fn calc_serialized_data_size_bounded<T>(value: &T, max: u64) -> Result<u64>
 where
     T: ser::Serialize + ?Sized,
 {
-    let mut checker = SizeChecker {
-        counter: Bounded(max),
-        pos: 0,
-    };
+    let mut checker = SizeChecker::new(Some(max));
 
-    match value.serialize(&mut checker) {
-        Ok(_) => Ok(max - checker.counter.0),
-        Err(e) => Err(e),
-    }
+    value.serialize(&mut checker)?;
+    Ok(max - checker.total)
 }
