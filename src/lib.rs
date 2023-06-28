@@ -3,7 +3,7 @@
 //! # Examples
 //!
 //! ```rust
-//! use cdr::{CdrBe, Infinite};
+//! use cdr::CdrBe;
 //! use serde_derive::{Deserialize, Serialize};
 //!
 //! #[derive(Deserialize, Serialize, PartialEq)]
@@ -19,7 +19,7 @@
 //!                                 Point { x: 1.0, y: -1.0 },
 //!                                 Point { x: 0.0, y: 0.73 }]);
 //!
-//!     let encoded = cdr::serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
+//!     let encoded = cdr::serialize::<_, CdrBe>(&triangle, None).unwrap();
 //!     let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
 //!
 //!     assert!(triangle == decoded);
@@ -73,13 +73,12 @@ where
 }
 
 /// Serializes a serializable object into a `Vec` of bytes with the encapsulation.
-pub fn serialize<T, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
+pub fn serialize<T, C>(value: &T, size_limit: Option<u64>) -> Result<Vec<u8>>
 where
     T: serde::Serialize + ?Sized,
-    S: SizeLimit,
     C: Encapsulation,
 {
-    let mut writer = match size_limit.limit() {
+    let mut writer = match size_limit {
         Some(limit) => {
             let actual_size = calc_serialized_size_bounded(value, limit)?;
             Vec::with_capacity(actual_size as usize)
@@ -90,19 +89,18 @@ where
         }
     };
 
-    serialize_into::<_, _, _, C>(&mut writer, value, Infinite)?;
+    serialize_into::<_, _, C>(&mut writer, value, None)?;
     Ok(writer)
 }
 
 /// Serializes an object directly into a `Write` with the encapsulation.
-pub fn serialize_into<W, T, S, C>(writer: W, value: &T, size_limit: S) -> Result<()>
+pub fn serialize_into<W, T, C>(writer: W, value: &T, size_limit: Option<u64>) -> Result<()>
 where
     W: Write,
     T: serde::ser::Serialize + ?Sized,
-    S: SizeLimit,
     C: Encapsulation,
 {
-    if let Some(limit) = size_limit.limit() {
+    if let Some(limit) = size_limit {
         calc_serialized_size_bounded(value, limit)?;
     }
 
@@ -119,28 +117,27 @@ pub fn deserialize<'de, T>(bytes: &[u8]) -> Result<T>
 where
     T: serde::Deserialize<'de>,
 {
-    deserialize_from::<_, _, _>(bytes, Infinite)
+    deserialize_from::<_, _>(bytes, None)
 }
 
 /// Deserializes an object directly from a `Read`.
-pub fn deserialize_from<'de, R, T, S>(reader: R, size_limit: S) -> Result<T>
+pub fn deserialize_from<'de, R, T>(reader: R, size_limit: Option<u64>) -> Result<T>
 where
     R: Read,
     T: serde::Deserialize<'de>,
-    S: SizeLimit,
 {
     use crate::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
-    let mut deserializer = Deserializer::<_, S, BigEndian>::new(reader, size_limit);
+    let mut deserializer = Deserializer::<_, BigEndian>::new(reader, size_limit);
 
     let v: [u8; ENCAPSULATION_HEADER_SIZE as usize] =
         serde::Deserialize::deserialize(&mut deserializer)?;
     deserializer.reset_pos();
     match v[1] {
         0 | 2 => serde::Deserialize::deserialize(&mut deserializer),
-        1 | 3 => serde::Deserialize::deserialize(
-            &mut Into::<Deserializer<_, _, LittleEndian>>::into(deserializer),
-        ),
+        1 | 3 => serde::Deserialize::deserialize(&mut Into::<Deserializer<_, LittleEndian>>::into(
+            deserializer,
+        )),
         _ => Err(Error::InvalidEncapsulation),
     }
 }

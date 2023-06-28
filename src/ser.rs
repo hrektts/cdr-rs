@@ -6,9 +6,7 @@ use byteorder::{ByteOrder, WriteBytesExt};
 use serde::ser;
 
 use crate::error::{Error, Result};
-use crate::size::{
-    calc_serialized_data_size, calc_serialized_data_size_bounded, Infinite, SizeLimit,
-};
+use crate::size::{calc_serialized_data_size, calc_serialized_data_size_bounded};
 
 /// A serializer that writes values into a buffer.
 pub struct Serializer<W, E> {
@@ -421,13 +419,12 @@ where
 }
 
 /// Serializes a serializable object into a `Vec` of bytes.
-pub fn serialize_data<T, S, E>(value: &T, size_limit: S) -> Result<Vec<u8>>
+pub fn serialize_data<T, E>(value: &T, size_limit: Option<u64>) -> Result<Vec<u8>>
 where
     T: ser::Serialize + ?Sized,
-    S: SizeLimit,
     E: ByteOrder,
 {
-    let mut writer = match size_limit.limit() {
+    let mut writer = match size_limit {
         Some(limit) => {
             let actual_size = calc_serialized_data_size_bounded(value, limit)?;
             Vec::with_capacity(actual_size as usize)
@@ -438,19 +435,18 @@ where
         }
     };
 
-    serialize_data_into::<_, _, _, E>(&mut writer, value, Infinite)?;
+    serialize_data_into::<_, _, E>(&mut writer, value, None)?;
     Ok(writer)
 }
 
 /// Serializes an object directly into a `Write`.
-pub fn serialize_data_into<W, T, S, E>(writer: W, value: &T, size_limit: S) -> Result<()>
+pub fn serialize_data_into<W, T, E>(writer: W, value: &T, size_limit: Option<u64>) -> Result<()>
 where
     W: Write,
     T: ser::Serialize + ?Sized,
-    S: SizeLimit,
     E: ByteOrder,
 {
-    if let Some(limit) = size_limit.limit() {
+    if let Some(limit) = size_limit {
         calc_serialized_data_size_bounded(value, limit)?;
     }
 
@@ -467,11 +463,11 @@ mod tests {
     fn serialize_octet() {
         let v = 32u8;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x20]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x20]
         );
     }
@@ -480,11 +476,11 @@ mod tests {
     fn serialize_char() {
         let v = 'Z';
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x5a]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x5a]
         );
     }
@@ -492,19 +488,19 @@ mod tests {
     #[test]
     fn serialize_wchar() {
         let v = 'Å';
-        assert!(serialize_data::<_, _, BigEndian>(&v, Infinite).is_err());
-        assert!(serialize_data::<_, _, LittleEndian>(&v, Infinite).is_err());
+        assert!(serialize_data::<_, BigEndian>(&v, None).is_err());
+        assert!(serialize_data::<_, LittleEndian>(&v, None).is_err());
     }
 
     #[test]
     fn serialize_ushort() {
         let v = 65500u16;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0xff, 0xdc]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0xdc, 0xff]
         );
     }
@@ -513,11 +509,11 @@ mod tests {
     fn serialize_short() {
         let v = -32700i16;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x80, 0x44]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x44, 0x80]
         );
     }
@@ -526,11 +522,11 @@ mod tests {
     fn serialize_ulong() {
         let v = 4294967200u32;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0xff, 0xff, 0xff, 0xa0]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0xa0, 0xff, 0xff, 0xff]
         );
     }
@@ -539,11 +535,11 @@ mod tests {
     fn serialize_long() {
         let v = -2147483600i32;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x80, 0x00, 0x00, 0x30]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x30, 0x00, 0x00, 0x80]
         );
     }
@@ -552,11 +548,11 @@ mod tests {
     fn serialize_ulonglong() {
         let v = 18446744073709551600u64;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]
         );
     }
@@ -565,11 +561,11 @@ mod tests {
     fn serialize_longlong() {
         let v = -9223372036800i64;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0xff, 0xff, 0xf7, 0x9c, 0x84, 0x2f, 0xa5, 0x40]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x40, 0xa5, 0x2f, 0x84, 0x9c, 0xf7, 0xff, 0xff]
         );
     }
@@ -578,11 +574,11 @@ mod tests {
     fn serialize_float() {
         let v = std::f32::MIN_POSITIVE;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x00, 0x80, 0x00, 0x00]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x00, 0x00, 0x80, 0x00]
         );
     }
@@ -591,11 +587,11 @@ mod tests {
     fn serialize_double() {
         let v = std::f64::MIN_POSITIVE;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00]
         );
     }
@@ -604,11 +600,11 @@ mod tests {
     fn serialize_bool() {
         let v = true;
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x01]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x01]
         );
     }
@@ -617,7 +613,7 @@ mod tests {
     fn serialize_string() {
         let v = "Hola a todos, esto es un test";
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x1e, 0x48, 0x6f, 0x6c, 0x61, 0x20, 0x61, 0x20, 0x74, 0x6f, 0x64,
                 0x6f, 0x73, 0x2c, 0x20, 0x65, 0x73, 0x74, 0x6f, 0x20, 0x65, 0x73, 0x20, 0x75, 0x6e,
@@ -625,7 +621,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x1e, 0x00, 0x00, 0x00, 0x48, 0x6f, 0x6c, 0x61, 0x20, 0x61, 0x20, 0x74, 0x6f, 0x64,
                 0x6f, 0x73, 0x2c, 0x20, 0x65, 0x73, 0x74, 0x6f, 0x20, 0x65, 0x73, 0x20, 0x75, 0x6e,
@@ -637,19 +633,19 @@ mod tests {
     #[test]
     fn serialize_wstring() {
         let v = "みなさんこんにちは。これはテストです。";
-        assert!(serialize_data::<_, _, BigEndian>(&v, Infinite).is_err());
-        assert!(serialize_data::<_, _, LittleEndian>(&v, Infinite).is_err());
+        assert!(serialize_data::<_, BigEndian>(&v, None).is_err());
+        assert!(serialize_data::<_, LittleEndian>(&v, None).is_err());
     }
 
     #[test]
     fn serialize_empty_string() {
         let v = "";
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x00, 0x00, 0x00, 0x01, 0x00]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x01, 0x00, 0x00, 0x00, 0x00]
         );
     }
@@ -658,11 +654,11 @@ mod tests {
     fn serialize_octet_array() {
         let v = [1u8, 2, 3, 4, 5];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x01, 0x02, 0x03, 0x04, 0x05]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x01, 0x02, 0x03, 0x04, 0x05]
         );
     }
@@ -671,11 +667,11 @@ mod tests {
     fn serialize_char_array() {
         let v = ['A', 'B', 'C', 'D', 'E'];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x41, 0x42, 0x43, 0x44, 0x45]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x41, 0x42, 0x43, 0x44, 0x45]
         );
     }
@@ -684,7 +680,7 @@ mod tests {
     fn serialize_ushort_array() {
         let v = [65500u16, 65501, 65502, 65503, 65504];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0xff, 0xdc, //
                 0xff, 0xdd, //
@@ -694,7 +690,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0xdc, 0xff, //
                 0xdd, 0xff, //
@@ -709,7 +705,7 @@ mod tests {
     fn serialize_short_array() {
         let v = [-32700i16, -32701, -32702, -32703, -32704];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x80, 0x44, //
                 0x80, 0x43, //
@@ -719,7 +715,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x44, 0x80, //
                 0x43, 0x80, //
@@ -740,7 +736,7 @@ mod tests {
             4294967204,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0xff, 0xff, 0xff, 0xa0, //
                 0xff, 0xff, 0xff, 0xa1, //
@@ -750,7 +746,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0xa0, 0xff, 0xff, 0xff, //
                 0xa1, 0xff, 0xff, 0xff, //
@@ -771,7 +767,7 @@ mod tests {
             -2147483604,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x80, 0x00, 0x00, 0x30, //
                 0x80, 0x00, 0x00, 0x2f, //
@@ -781,7 +777,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x30, 0x00, 0x00, 0x80, //
                 0x2f, 0x00, 0x00, 0x80, //
@@ -802,7 +798,7 @@ mod tests {
             18446744073709551604,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf0, //
                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xf1, //
@@ -812,7 +808,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, //
                 0xf1, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, //
@@ -833,7 +829,7 @@ mod tests {
             -9223372036804,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0xff, 0xff, 0xf7, 0x9c, 0x84, 0x2f, 0xa5, 0x40, //
                 0xff, 0xff, 0xf7, 0x9c, 0x84, 0x2f, 0xa5, 0x3f, //
@@ -843,7 +839,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x40, 0xa5, 0x2f, 0x84, 0x9c, 0xf7, 0xff, 0xff, //
                 0x3f, 0xa5, 0x2f, 0x84, 0x9c, 0xf7, 0xff, 0xff, //
@@ -860,7 +856,7 @@ mod tests {
 
         let v = [f, f + 1., f + 2., f + 3., f + 4.];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x80, 0x00, 0x00, //
                 0x3f, 0x80, 0x00, 0x00, //
@@ -870,7 +866,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x80, 0x00, //
                 0x00, 0x00, 0x80, 0x3f, //
@@ -887,7 +883,7 @@ mod tests {
 
         let v = [f, f + 1., f + 2., f + 3., f + 4.];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //
                 0x3f, 0xf0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, //
@@ -897,7 +893,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, //
                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f, //
@@ -912,11 +908,11 @@ mod tests {
     fn serialize_bool_array() {
         let v = [true, false, true, false, true];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![0x01, 0x00, 0x01, 0x00, 0x01]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![0x01, 0x00, 0x01, 0x00, 0x01]
         );
     }
@@ -925,7 +921,7 @@ mod tests {
     fn serialize_string_array() {
         let v = ["HOLA", "ADIOS", "HELLO", "BYE", "GOODBYE"];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x48, 0x4f, 0x4c, 0x41, 0x00, //
@@ -943,7 +939,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x48, 0x4f, 0x4c, 0x41, 0x00, //
@@ -966,14 +962,14 @@ mod tests {
     fn serialize_octet_sequence() {
         let v = vec![1u8, 2, 3, 4, 5];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x01, 0x02, 0x03, 0x04, 0x05
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x01, 0x02, 0x03, 0x04, 0x05
@@ -985,14 +981,14 @@ mod tests {
     fn serialize_char_sequence() {
         let v = vec!['A', 'B', 'C', 'D', 'E'];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x41, 0x42, 0x43, 0x44, 0x45
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x41, 0x42, 0x43, 0x44, 0x45
@@ -1004,7 +1000,7 @@ mod tests {
     fn serialize_ushort_sequence() {
         let v = vec![65500u16, 65501, 65502, 65503, 65504];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0xff, 0xdc, //
@@ -1015,7 +1011,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0xdc, 0xff, //
@@ -1031,7 +1027,7 @@ mod tests {
     fn serialize_short_sequence() {
         let v = vec![-32700i16, -32701, -32702, -32703, -32704];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x80, 0x44, //
@@ -1042,7 +1038,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x44, 0x80, //
@@ -1064,7 +1060,7 @@ mod tests {
             4294967204,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0xff, 0xff, 0xff, 0xa0, //
@@ -1075,7 +1071,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0xa0, 0xff, 0xff, 0xff, //
@@ -1097,7 +1093,7 @@ mod tests {
             -2147483604,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x80, 0x00, 0x00, 0x30, //
@@ -1108,7 +1104,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x30, 0x00, 0x00, 0x80, //
@@ -1130,7 +1126,7 @@ mod tests {
             18446744073709551604,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1142,7 +1138,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1165,7 +1161,7 @@ mod tests {
             -9223372036804,
         ];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1177,7 +1173,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1196,7 +1192,7 @@ mod tests {
 
         let v = vec![f, f + 1., f + 2., f + 3., f + 4.];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x00, 0x80, 0x00, 0x00, //
@@ -1207,7 +1203,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x00, 0x00, 0x80, 0x00, //
@@ -1225,7 +1221,7 @@ mod tests {
 
         let v = vec![f, f + 1., f + 2., f + 3., f + 4.];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1237,7 +1233,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x00, 0x00, 0x00, 0x00, //
@@ -1254,14 +1250,14 @@ mod tests {
     fn serialize_bool_sequence() {
         let v = vec![true, false, true, false, true];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x01, 0x00, 0x01, 0x00, 0x01
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x01, 0x00, 0x01, 0x00, 0x01
@@ -1273,7 +1269,7 @@ mod tests {
     fn serialize_string_sequence() {
         let v = vec!["HOLA", "ADIOS", "HELLO", "BYE", "GOODBYE"];
         assert_eq!(
-            serialize_data::<_, _, BigEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, BigEndian>(&v, None).unwrap(),
             vec![
                 0x00, 0x00, 0x00, 0x05, //
                 0x00, 0x00, 0x00, 0x05, //
@@ -1292,7 +1288,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            serialize_data::<_, _, LittleEndian>(&v, Infinite).unwrap(),
+            serialize_data::<_, LittleEndian>(&v, None).unwrap(),
             vec![
                 0x05, 0x00, 0x00, 0x00, //
                 0x05, 0x00, 0x00, 0x00, //

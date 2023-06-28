@@ -1,8 +1,6 @@
 use std::{fmt::Debug, io::Cursor};
 
-use cdr::{
-    BigEndian, Bounded, CdrBe, CdrLe, Error, Infinite, LittleEndian, PlCdrBe, PlCdrLe, Result,
-};
+use cdr::{BigEndian, CdrBe, CdrLe, Error, LittleEndian, PlCdrBe, PlCdrLe, Result};
 use serde_derive::{Deserialize, Serialize};
 
 const ENCAPSULATION_HEADER_SIZE: u64 = 4;
@@ -42,42 +40,42 @@ where
         None => cdr::calc_serialized_size(&element),
     };
     {
-        let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(element, Infinite).unwrap();
+        let encoded = cdr::ser::serialize_data::<_, BigEndian>(element, None).unwrap();
         let decoded = cdr::de::deserialize_data::<T, BigEndian>(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
         assert_eq!(size, encoded.len() as u64);
     }
     {
-        let encoded = cdr::ser::serialize_data::<_, _, LittleEndian>(element, Infinite).unwrap();
+        let encoded = cdr::ser::serialize_data::<_, LittleEndian>(element, None).unwrap();
         let decoded = cdr::de::deserialize_data::<T, LittleEndian>(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
         assert_eq!(size, encoded.len() as u64);
     }
     {
-        let encoded = cdr::serialize::<_, _, CdrBe>(element, Infinite).unwrap();
+        let encoded = cdr::serialize::<_, CdrBe>(element, None).unwrap();
         let decoded = cdr::deserialize(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
         assert_eq!(size + ENCAPSULATION_HEADER_SIZE, encoded.len() as u64);
     }
     {
-        let encoded = cdr::serialize::<_, _, CdrLe>(element, Infinite).unwrap();
+        let encoded = cdr::serialize::<_, CdrLe>(element, None).unwrap();
         let decoded = cdr::deserialize(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
         assert_eq!(size + ENCAPSULATION_HEADER_SIZE, encoded.len() as u64);
     }
     {
-        let encoded = cdr::serialize::<_, _, PlCdrBe>(element, Infinite).unwrap();
+        let encoded = cdr::serialize::<_, PlCdrBe>(element, None).unwrap();
         let decoded = cdr::deserialize(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
         assert_eq!(size + ENCAPSULATION_HEADER_SIZE, encoded.len() as u64);
     }
     {
-        let encoded = cdr::serialize::<_, _, PlCdrLe>(element, Infinite).unwrap();
+        let encoded = cdr::serialize::<_, PlCdrLe>(element, None).unwrap();
         let decoded = cdr::deserialize(&encoded).unwrap();
 
         assert_eq!(*element, decoded);
@@ -93,64 +91,62 @@ where
     if let Some(bound) = calc_invalid_size(element, maybe_size) {
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::ser::serialize_data_into::<_, _, _, BigEndian>(
-                &mut buf, &element, Infinite
-            )
-            .is_err());
+            assert!(
+                cdr::ser::serialize_data_into::<_, _, BigEndian>(&mut buf, &element, None).is_err()
+            );
         }
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::ser::serialize_data_into::<_, _, _, LittleEndian>(
-                &mut buf, &element, Infinite
-            )
-            .is_err());
+            assert!(
+                cdr::ser::serialize_data_into::<_, _, LittleEndian>(&mut buf, &element, None)
+                    .is_err()
+            );
         }
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::serialize_into::<_, _, _, CdrBe>(&mut buf, &element, Infinite).is_err());
+            assert!(cdr::serialize_into::<_, _, CdrBe>(&mut buf, &element, None).is_err());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::serialize_into::<_, _, _, CdrLe>(&mut buf, &element, Infinite).is_err());
+            assert!(cdr::serialize_into::<_, _, CdrLe>(&mut buf, &element, None).is_err());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite).is_err());
+            assert!(cdr::serialize_into::<_, _, PlCdrBe>(&mut buf, &element, None).is_err());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..bound as usize]);
-            assert!(cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite).is_err());
+            assert!(cdr::serialize_into::<_, _, PlCdrLe>(&mut buf, &element, None).is_err());
         }
     } else {
         {
             let mut buf = Cursor::new(&mut buf[0..0]);
-            assert!(cdr::ser::serialize_data_into::<_, _, _, BigEndian>(
-                &mut buf, &element, Infinite
-            )
-            .is_ok());
+            assert!(
+                cdr::ser::serialize_data_into::<_, _, BigEndian>(&mut buf, &element, None).is_ok()
+            );
         }
         {
             let mut buf = Cursor::new(&mut buf[0..0]);
-            assert!(cdr::ser::serialize_data_into::<_, _, _, LittleEndian>(
-                &mut buf, &element, Infinite
-            )
-            .is_ok());
+            assert!(
+                cdr::ser::serialize_data_into::<_, _, LittleEndian>(&mut buf, &element, None)
+                    .is_ok()
+            );
         }
         {
             let mut buf = Cursor::new(&mut buf[0..ENCAPSULATION_HEADER_SIZE as usize]);
-            assert!(cdr::serialize_into::<_, _, _, CdrBe>(&mut buf, &element, Infinite).is_ok());
+            assert!(cdr::serialize_into::<_, _, CdrBe>(&mut buf, &element, None).is_ok());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..ENCAPSULATION_HEADER_SIZE as usize]);
-            assert!(cdr::serialize_into::<_, _, _, CdrLe>(&mut buf, &element, Infinite).is_ok());
+            assert!(cdr::serialize_into::<_, _, CdrLe>(&mut buf, &element, None).is_ok());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..ENCAPSULATION_HEADER_SIZE as usize]);
-            assert!(cdr::serialize_into::<_, _, _, PlCdrBe>(&mut buf, &element, Infinite).is_ok());
+            assert!(cdr::serialize_into::<_, _, PlCdrBe>(&mut buf, &element, None).is_ok());
         }
         {
             let mut buf = Cursor::new(&mut buf[0..ENCAPSULATION_HEADER_SIZE as usize]);
-            assert!(cdr::serialize_into::<_, _, _, PlCdrLe>(&mut buf, &element, Infinite).is_ok());
+            assert!(cdr::serialize_into::<_, _, PlCdrLe>(&mut buf, &element, None).is_ok());
         }
     }
 }
@@ -160,112 +156,103 @@ where
     T: serde::Serialize + serde::Deserialize<'de> + PartialEq + Debug,
 {
     if let Some(bound) = calc_invalid_size(element, maybe_size) {
-        assert!(cdr::ser::serialize_data::<_, _, BigEndian>(&element, Bounded(bound)).is_err());
-        assert!(cdr::ser::serialize_data::<_, _, LittleEndian>(&element, Bounded(bound)).is_err());
-        assert!(cdr::serialize::<_, _, CdrBe>(&element, Bounded(bound)).is_err());
-        assert!(cdr::serialize::<_, _, CdrLe>(&element, Bounded(bound)).is_err());
-        assert!(cdr::serialize::<_, _, PlCdrBe>(&element, Bounded(bound)).is_err());
-        assert!(cdr::serialize::<_, _, PlCdrLe>(&element, Bounded(bound)).is_err());
+        assert!(cdr::ser::serialize_data::<_, BigEndian>(&element, Some(bound)).is_err());
+        assert!(cdr::ser::serialize_data::<_, LittleEndian>(&element, Some(bound)).is_err());
+        assert!(cdr::serialize::<_, CdrBe>(&element, Some(bound)).is_err());
+        assert!(cdr::serialize::<_, CdrLe>(&element, Some(bound)).is_err());
+        assert!(cdr::serialize::<_, PlCdrBe>(&element, Some(bound)).is_err());
+        assert!(cdr::serialize::<_, PlCdrLe>(&element, Some(bound)).is_err());
         {
-            let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&element, Infinite).unwrap();
+            let encoded = cdr::ser::serialize_data::<_, BigEndian>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::de::deserialize_data_from::<_, T, _, BigEndian>(
+            assert!(
+                cdr::de::deserialize_data_from::<_, T, BigEndian>(&mut encoded, Some(bound))
+                    .is_err()
+            );
+        }
+        {
+            let encoded = cdr::ser::serialize_data::<_, LittleEndian>(&element, None).unwrap();
+            let mut encoded = encoded.as_slice();
+            assert!(cdr::de::deserialize_data_from::<_, T, LittleEndian>(
                 &mut encoded,
-                Bounded(bound)
+                Some(bound)
             )
             .is_err());
         }
         {
-            let encoded =
-                cdr::ser::serialize_data::<_, _, LittleEndian>(&element, Infinite).unwrap();
+            let encoded = cdr::serialize::<_, CdrBe>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::de::deserialize_data_from::<_, T, _, LittleEndian>(
-                &mut encoded,
-                Bounded(bound)
-            )
-            .is_err());
+            assert!(cdr::deserialize_from::<_, T>(&mut encoded, Some(bound)).is_err());
         }
         {
-            let encoded = cdr::serialize::<_, _, CdrBe>(&element, Infinite).unwrap();
+            let encoded = cdr::serialize::<_, CdrLe>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
+            assert!(cdr::deserialize_from::<_, T>(&mut encoded, Some(bound)).is_err());
         }
         {
-            let encoded = cdr::serialize::<_, _, CdrLe>(&element, Infinite).unwrap();
+            let encoded = cdr::serialize::<_, PlCdrBe>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
+            assert!(cdr::deserialize_from::<_, T>(&mut encoded, Some(bound)).is_err());
         }
         {
-            let encoded = cdr::serialize::<_, _, PlCdrBe>(&element, Infinite).unwrap();
+            let encoded = cdr::serialize::<_, PlCdrLe>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
-        }
-        {
-            let encoded = cdr::serialize::<_, _, PlCdrLe>(&element, Infinite).unwrap();
-            let mut encoded = encoded.as_slice();
-            assert!(cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(bound)).is_err());
+            assert!(cdr::deserialize_from::<_, T>(&mut encoded, Some(bound)).is_err());
         }
     } else {
         {
-            let encoded =
-                cdr::ser::serialize_data::<_, _, BigEndian>(&element, Bounded(0)).unwrap();
+            let encoded = cdr::ser::serialize_data::<_, BigEndian>(&element, Some(0)).unwrap();
             let mut encoded = encoded.as_slice();
             let decoded =
-                cdr::de::deserialize_data_from::<_, T, _, BigEndian>(&mut encoded, Bounded(0))
+                cdr::de::deserialize_data_from::<_, T, BigEndian>(&mut encoded, Some(0)).unwrap();
+
+            assert_eq!(*element, decoded);
+        }
+        {
+            let encoded = cdr::ser::serialize_data::<_, LittleEndian>(&element, Some(0)).unwrap();
+            let mut encoded = encoded.as_slice();
+            let decoded =
+                cdr::de::deserialize_data_from::<_, T, LittleEndian>(&mut encoded, Some(0))
                     .unwrap();
 
             assert_eq!(*element, decoded);
         }
         {
             let encoded =
-                cdr::ser::serialize_data::<_, _, LittleEndian>(&element, Bounded(0)).unwrap();
+                cdr::serialize::<_, CdrBe>(&element, Some(ENCAPSULATION_HEADER_SIZE)).unwrap();
             let mut encoded = encoded.as_slice();
             let decoded =
-                cdr::de::deserialize_data_from::<_, T, _, LittleEndian>(&mut encoded, Bounded(0))
+                cdr::deserialize_from::<_, T>(&mut encoded, Some(ENCAPSULATION_HEADER_SIZE))
                     .unwrap();
 
             assert_eq!(*element, decoded);
         }
         {
             let encoded =
-                cdr::serialize::<_, _, CdrBe>(&element, Bounded(ENCAPSULATION_HEADER_SIZE))
-                    .unwrap();
+                cdr::serialize::<_, CdrLe>(&element, Some(ENCAPSULATION_HEADER_SIZE)).unwrap();
             let mut encoded = encoded.as_slice();
             let decoded =
-                cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(ENCAPSULATION_HEADER_SIZE))
+                cdr::deserialize_from::<_, T>(&mut encoded, Some(ENCAPSULATION_HEADER_SIZE))
                     .unwrap();
 
             assert_eq!(*element, decoded);
         }
         {
             let encoded =
-                cdr::serialize::<_, _, CdrLe>(&element, Bounded(ENCAPSULATION_HEADER_SIZE))
-                    .unwrap();
+                cdr::serialize::<_, PlCdrBe>(&element, Some(ENCAPSULATION_HEADER_SIZE)).unwrap();
             let mut encoded = encoded.as_slice();
             let decoded =
-                cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(ENCAPSULATION_HEADER_SIZE))
+                cdr::deserialize_from::<_, T>(&mut encoded, Some(ENCAPSULATION_HEADER_SIZE))
                     .unwrap();
 
             assert_eq!(*element, decoded);
         }
         {
             let encoded =
-                cdr::serialize::<_, _, PlCdrBe>(&element, Bounded(ENCAPSULATION_HEADER_SIZE))
-                    .unwrap();
+                cdr::serialize::<_, PlCdrLe>(&element, Some(ENCAPSULATION_HEADER_SIZE)).unwrap();
             let mut encoded = encoded.as_slice();
             let decoded =
-                cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(ENCAPSULATION_HEADER_SIZE))
-                    .unwrap();
-
-            assert_eq!(*element, decoded);
-        }
-        {
-            let encoded =
-                cdr::serialize::<_, _, PlCdrLe>(&element, Bounded(ENCAPSULATION_HEADER_SIZE))
-                    .unwrap();
-            let mut encoded = encoded.as_slice();
-            let decoded =
-                cdr::deserialize_from::<_, T, _>(&mut encoded, Bounded(ENCAPSULATION_HEADER_SIZE))
+                cdr::deserialize_from::<_, T>(&mut encoded, Some(ENCAPSULATION_HEADER_SIZE))
                     .unwrap();
 
             assert_eq!(*element, decoded);
@@ -782,21 +769,21 @@ fn test_unsupported() {
         }
     }
 
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
+    check_error_kind(cdr::ser::serialize_data::<_, BigEndian>(
         &Some(1usize),
-        Infinite,
+        None,
     ));
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
+    check_error_kind(cdr::ser::serialize_data::<_, BigEndian>(
         &None::<usize>,
-        Infinite,
+        None,
     ));
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
+    check_error_kind(cdr::ser::serialize_data::<_, BigEndian>(
         &HashMap::<usize, usize>::new(),
-        Infinite,
+        None,
     ));
-    check_error_kind(cdr::ser::serialize_data::<_, _, BigEndian>(
+    check_error_kind(cdr::ser::serialize_data::<_, BigEndian>(
         &BTreeMap::<usize, usize>::new(),
-        Infinite,
+        None,
     ));
 
     check_error_kind(cdr::de::deserialize_data::<Option<usize>, BigEndian>(
