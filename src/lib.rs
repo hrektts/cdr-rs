@@ -49,18 +49,18 @@ pub use crate::size::{Bounded, Infinite, SizeLimit};
 use std::io::{Read, Write};
 
 /// Returns the size that an object would be if serialized with a encapsulation.
-pub fn calc_serialized_size<T: ?Sized>(value: &T) -> u64
+pub fn calc_serialized_size<T>(value: &T) -> u64
 where
-    T: serde::Serialize,
+    T: serde::Serialize + ?Sized,
 {
     size::calc_serialized_data_size(value) + encapsulation::ENCAPSULATION_HEADER_SIZE
 }
 
 /// Given a maximum size limit, check how large an object would be if it were
 /// to be serialized with a encapsulation.
-pub fn calc_serialized_size_bounded<T: ?Sized>(value: &T, max: u64) -> Result<u64>
+pub fn calc_serialized_size_bounded<T>(value: &T, max: u64) -> Result<u64>
 where
-    T: serde::Serialize,
+    T: serde::Serialize + ?Sized,
 {
     use crate::encapsulation::ENCAPSULATION_HEADER_SIZE;
 
@@ -73,9 +73,9 @@ where
 }
 
 /// Serializes a serializable object into a `Vec` of bytes with the encapsulation.
-pub fn serialize<T: ?Sized, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
+pub fn serialize<T, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
 where
-    T: serde::Serialize,
+    T: serde::Serialize + ?Sized,
     S: SizeLimit,
     C: Encapsulation,
 {
@@ -95,10 +95,10 @@ where
 }
 
 /// Serializes an object directly into a `Write` with the encapsulation.
-pub fn serialize_into<W, T: ?Sized, S, C>(writer: W, value: &T, size_limit: S) -> Result<()>
+pub fn serialize_into<W, T, S, C>(writer: W, value: &T, size_limit: S) -> Result<()>
 where
     W: Write,
-    T: serde::ser::Serialize,
+    T: serde::ser::Serialize + ?Sized,
     S: SizeLimit,
     C: Encapsulation,
 {

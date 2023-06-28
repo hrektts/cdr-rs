@@ -64,7 +64,7 @@ impl std::error::Error for Error {
 
 impl From<io::Error> for Error {
     fn from(err: io::Error) -> Self {
-        Error::Io(err)
+        Self::Io(err)
     }
 }
 
@@ -73,7 +73,7 @@ impl serde::de::Error for Error {
     where
         T: fmt::Display,
     {
-        Error::Message(msg.to_string())
+        Self::Message(msg.to_string())
     }
 }
 
@@ -82,6 +82,6 @@ impl serde::ser::Error for Error {
     where
         T: fmt::Display,
     {
-        Error::Message(msg.to_string())
+        Self::Message(msg.to_string())
     }
 }
