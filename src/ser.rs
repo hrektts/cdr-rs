@@ -333,9 +333,9 @@ where
     type Error = Error;
 
     #[inline]
-    fn serialize_field<T: ?Sized>(&mut self, value: &T) -> Result<()>
+    fn serialize_field<T>(&mut self, value: &T) -> Result<()>
     where
-        T: ser::Serialize,
+        T: ser::Serialize + ?Sized,
     {
         value.serialize(&mut *self.ser)
     }

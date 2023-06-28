@@ -230,11 +230,11 @@ where
     where
         V: de::Visitor<'de>,
     {
-        struct Access<'a, R, S: 'a, E: 'a>
+        struct Access<'a, R, S, E>
         where
             R: Read + 'a,
-            S: SizeLimit,
-            E: ByteOrder,
+            S: SizeLimit + 'a,
+            E: ByteOrder + 'a,
         {
             deserializer: &'a mut Deserializer<R, S, E>,
             len: usize,
