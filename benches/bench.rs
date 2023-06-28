@@ -1,4 +1,5 @@
 #![feature(test)]
+#![deny(warnings, clippy::all)]
 
 extern crate test;
 

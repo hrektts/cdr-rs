@@ -26,7 +26,7 @@
 
 //! ```
 
-#![deny(clippy::all)]
+#![deny(warnings, clippy::all)]
 
 pub use byteorder::{BigEndian, LittleEndian};
 
