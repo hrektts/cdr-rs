@@ -21,7 +21,7 @@ struct MsgInfo {
 }
 
 #[repr(C)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 struct LidarPoint {
     position: [f32; 3],
     intensity: u8,
@@ -33,16 +33,17 @@ fn compose_lidar_points_msg() -> LidarPointsMsg {
         timestamp: 3,
         guid: 5,
     };
-    let points = (0..10_000)
-        .map(|_| LidarPoint {
+    let points = vec![
+        LidarPoint {
             position: [
                 std::f32::EPSILON,
                 std::f32::EPSILON * 1.,
                 std::f32::EPSILON * 2.,
             ],
             intensity: 7,
-        })
-        .collect();
+        };
+        10_000
+    ];
     LidarPointsMsg { msg_info, points }
 }
 
