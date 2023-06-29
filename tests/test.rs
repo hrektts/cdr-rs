@@ -175,10 +175,11 @@ where
         {
             let encoded = cdr::ser::serialize_data::<_, LittleEndian>(&element, None).unwrap();
             let mut encoded = encoded.as_slice();
-            assert!(
-                cdr::de::deserialize_data_from::<_, T, LittleEndian>(&mut encoded, Some(bound))
-                    .is_err()
-            );
+            assert!(cdr::de::deserialize_data_from::<_, T, LittleEndian>(
+                &mut encoded,
+                Some(bound)
+            )
+            .is_err());
         }
         {
             let encoded = cdr::serialize::<_, CdrBe>(&element, None).unwrap();
@@ -270,7 +271,11 @@ where
         Some(_) => None,
         None => {
             let size = cdr::size::calc_serialized_data_size(&element);
-            if size > 0 { Some(size - 1) } else { None }
+            if size > 0 {
+                Some(size - 1)
+            } else {
+                None
+            }
         }
     }
 }
