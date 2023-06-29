@@ -1,4 +1,5 @@
-//! A serialization/deserialization implementation for Common Data Representation.
+//! A serialization/deserialization implementation for Common Data
+//! Representation.
 //!
 //! # Examples
 //!
@@ -70,7 +71,8 @@ where
     }
 }
 
-/// Serializes a serializable object into a `Vec` of bytes with the encapsulation.
+/// Serializes a serializable object into a `Vec` of bytes with the
+/// encapsulation.
 pub fn serialize<T, C>(value: &T, size_limit: Option<u64>) -> Result<Vec<u8>>
 where
     T: serde::Serialize + ?Sized,

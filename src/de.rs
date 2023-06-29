@@ -32,8 +32,9 @@ where
     }
 
     fn read_padding_of<T>(&mut self) -> Result<()> {
-        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
-        // Instead of using the slow modulo operation '%', the faster bit-masking is used
+        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte
+        // boundaries Instead of using the slow modulo operation '%', the faster
+        // bit-masking is used
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
         let mut padding: [u8; 8] = [0; 8];
@@ -108,6 +109,22 @@ where
 {
     type Error = Error;
 
+    impl_deserialize_value!(deserialize_i16<i16> = visit_i16(read_i16));
+
+    impl_deserialize_value!(deserialize_i32<i32> = visit_i32(read_i32));
+
+    impl_deserialize_value!(deserialize_i64<i64> = visit_i64(read_i64));
+
+    impl_deserialize_value!(deserialize_u16<u16> = visit_u16(read_u16));
+
+    impl_deserialize_value!(deserialize_u32<u32> = visit_u32(read_u32));
+
+    impl_deserialize_value!(deserialize_u64<u64> = visit_u64(read_u64));
+
+    impl_deserialize_value!(deserialize_f32<f32> = visit_f32(read_f32));
+
+    impl_deserialize_value!(deserialize_f64<f64> = visit_f64(read_f64));
+
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
@@ -135,10 +152,6 @@ where
         visitor.visit_i8(self.reader.read_i8()?)
     }
 
-    impl_deserialize_value!(deserialize_i16<i16> = visit_i16(read_i16));
-    impl_deserialize_value!(deserialize_i32<i32> = visit_i32(read_i32));
-    impl_deserialize_value!(deserialize_i64<i64> = visit_i64(read_i64));
-
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
@@ -146,13 +159,6 @@ where
         self.read_size_of::<u8>()?;
         visitor.visit_u8(self.reader.read_u8()?)
     }
-
-    impl_deserialize_value!(deserialize_u16<u16> = visit_u16(read_u16));
-    impl_deserialize_value!(deserialize_u32<u32> = visit_u32(read_u32));
-    impl_deserialize_value!(deserialize_u64<u64> = visit_u64(read_u64));
-
-    impl_deserialize_value!(deserialize_f32<f32> = visit_f32(read_f32));
-    impl_deserialize_value!(deserialize_f64<f64> = visit_f64(read_f64));
 
     fn deserialize_char<V>(self, visitor: V) -> Result<V::Value>
     where

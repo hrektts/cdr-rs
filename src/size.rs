@@ -18,6 +18,7 @@ impl SizeChecker {
             pos: 0,
         }
     }
+
     fn add_padding_of<T>(&mut self) -> Result<()> {
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
@@ -67,32 +68,39 @@ macro_rules! impl_serialize_value {
 }
 
 impl<'a> ser::Serializer for &'a mut SizeChecker {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
+    type SerializeMap = SizeCompound<'a>;
     type SerializeSeq = SizeCompound<'a>;
+    type SerializeStruct = SizeCompound<'a>;
+    type SerializeStructVariant = SizeCompound<'a>;
     type SerializeTuple = SizeCompound<'a>;
     type SerializeTupleStruct = SizeCompound<'a>;
     type SerializeTupleVariant = SizeCompound<'a>;
-    type SerializeMap = SizeCompound<'a>;
-    type SerializeStruct = SizeCompound<'a>;
-    type SerializeStructVariant = SizeCompound<'a>;
+
+    impl_serialize_value! { serialize_i8(i8) }
+
+    impl_serialize_value! { serialize_i16(i16) }
+
+    impl_serialize_value! { serialize_i32(i32) }
+
+    impl_serialize_value! { serialize_i64(i64) }
+
+    impl_serialize_value! { serialize_u8(u8) }
+
+    impl_serialize_value! { serialize_u16(u16) }
+
+    impl_serialize_value! { serialize_u32(u32) }
+
+    impl_serialize_value! { serialize_u64(u64) }
+
+    impl_serialize_value! { serialize_f32(f32) }
+
+    impl_serialize_value! { serialize_f64(f64) }
 
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok> {
         self.add_value(0u8)
     }
-
-    impl_serialize_value! { serialize_i8(i8) }
-    impl_serialize_value! { serialize_i16(i16) }
-    impl_serialize_value! { serialize_i32(i32) }
-    impl_serialize_value! { serialize_i64(i64) }
-
-    impl_serialize_value! { serialize_u8(u8) }
-    impl_serialize_value! { serialize_u16(u16) }
-    impl_serialize_value! { serialize_u32(u32) }
-    impl_serialize_value! { serialize_u64(u64) }
-
-    impl_serialize_value! { serialize_f32(f32) }
-    impl_serialize_value! { serialize_f64(f64) }
 
     fn serialize_char(self, _v: char) -> Result<Self::Ok> {
         self.add_size(1)
@@ -216,8 +224,8 @@ pub struct SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeSeq for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -234,8 +242,8 @@ impl<'a> ser::SerializeSeq for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeTuple for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -252,8 +260,8 @@ impl<'a> ser::SerializeTuple for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeTupleStruct for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -270,8 +278,8 @@ impl<'a> ser::SerializeTupleStruct for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeTupleVariant for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -288,8 +296,8 @@ impl<'a> ser::SerializeTupleVariant for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeMap for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
@@ -314,8 +322,8 @@ impl<'a> ser::SerializeMap for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeStruct for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
@@ -332,8 +340,8 @@ impl<'a> ser::SerializeStruct for SizeCompound<'a> {
 }
 
 impl<'a> ser::SerializeStructVariant for SizeCompound<'a> {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
