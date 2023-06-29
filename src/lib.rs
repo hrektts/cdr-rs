@@ -16,16 +16,21 @@
 //! #[derive(Deserialize, Serialize, PartialEq)]
 //! struct Polygon(Vec<Point>);
 //!
-//!     let triangle = Polygon(vec![Point { x: -1.0, y: -1.0 },
-//!                                 Point { x: 1.0, y: -1.0 },
-//!                                 Point { x: 0.0, y: 0.73 }]);
+//! let triangle = Polygon(vec![
+//!     Point { x: -1.0, y: -1.0 },
+//!     Point { x: 1.0, y: -1.0 },
+//!     Point { x: 0.0, y: 0.73 },
+//! ]);
 //!
-//!     let encoded = cdr::serialize::<_, CdrBe>(&triangle, None).unwrap();
-//!     let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
+//! let encoded = cdr::serialize::<_, CdrBe>(&triangle, None).unwrap();
+//! let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
 //!
-//!     assert!(triangle == decoded);
-
+//! assert!(triangle == decoded);
 //! ```
+
+#![deny(warnings, clippy::all)]
+
+use std::io::{Read, Write};
 
 pub use byteorder::{BigEndian, LittleEndian};
 
@@ -44,8 +49,6 @@ pub mod ser;
 pub use crate::ser::Serializer;
 
 pub mod size;
-
-use std::io::{Read, Write};
 
 /// Returns the size that an object would be if serialized with a encapsulation.
 pub fn calc_serialized_size<T>(value: &T) -> u64

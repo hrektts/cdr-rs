@@ -1,3 +1,5 @@
+#![deny(warnings, clippy::all)]
+
 use std::{fmt::Debug, io::Cursor};
 
 use cdr::{BigEndian, CdrBe, CdrLe, Error, LittleEndian, PlCdrBe, PlCdrLe, Result};
