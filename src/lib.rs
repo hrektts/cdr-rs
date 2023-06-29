@@ -26,6 +26,8 @@
 
 //! ```
 
+#![deny(warnings, clippy::all)]
+
 pub use byteorder::{BigEndian, LittleEndian};
 
 pub mod de;
