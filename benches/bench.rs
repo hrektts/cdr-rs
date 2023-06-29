@@ -1,10 +1,7 @@
-#![feature(test)]
 #![deny(warnings, clippy::all)]
 
-extern crate test;
-
+use criterion::{criterion_group, criterion_main, Criterion};
 use serde_derive::{Deserialize, Serialize};
-use test::Bencher;
 
 // cf. https://polysync.io/download/polysync-safety_and_serialization.pdf
 #[repr(C)]
@@ -44,39 +41,42 @@ fn compose_lidar_points_msg() -> LidarPointsMsg {
             ],
             intensity: 7,
         })
-        .collect::<Vec<_>>();
+        .collect();
     LidarPointsMsg { msg_info, points }
 }
 
-#[bench]
-fn lidar_point_msg(b: &mut Bencher) {
-    use cdr::{self, CdrBe, Infinite};
+fn lidar_point_msg(b: &mut Criterion) {
+    use cdr::{CdrBe, Infinite};
 
     let msg = compose_lidar_points_msg();
-    b.iter(|| {
-        let encoded = cdr::serialize::<_, _, CdrBe>(&msg, Infinite).unwrap();
-        let _decoded = cdr::deserialize::<LidarPointsMsg>(&encoded[..]).unwrap();
+    b.bench_function("lidar point msg", |b| {
+        b.iter(|| {
+            let encoded = cdr::serialize::<_, _, CdrBe>(&msg, Infinite).unwrap();
+            let _decoded = cdr::deserialize::<LidarPointsMsg>(&encoded[..]).unwrap();
+        })
     });
 }
 
-#[bench]
-fn lidar_point_msg_without_encapsulation(b: &mut Bencher) {
-    use cdr::{self, BigEndian, Infinite};
+fn lidar_point_msg_without_encapsulation(b: &mut Criterion) {
+    use cdr::{BigEndian, Infinite};
 
     let msg = compose_lidar_points_msg();
-    b.iter(|| {
-        let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
-        let _decoded =
-            cdr::de::deserialize_data::<LidarPointsMsg, BigEndian>(&encoded[..]).unwrap();
+    b.bench_function("lidar point msg without encapsulation", |b| {
+        b.iter(|| {
+            let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
+            let _decoded =
+                cdr::de::deserialize_data::<LidarPointsMsg, BigEndian>(&encoded[..]).unwrap();
+        })
     });
 }
 
-#[bench]
-fn lidar_point_msg_bincode(b: &mut Bencher) {
+fn lidar_point_msg_bincode(b: &mut Criterion) {
     let msg = compose_lidar_points_msg();
-    b.iter(|| {
-        let encoded = bincode::serialize(&msg).unwrap();
-        let _decoded = bincode::deserialize::<LidarPointsMsg>(&encoded[..]).unwrap();
+    b.bench_function("lidar point msg bincode", |b| {
+        b.iter(|| {
+            let encoded = bincode::serialize(&msg).unwrap();
+            let _decoded = bincode::deserialize::<LidarPointsMsg>(&encoded[..]).unwrap();
+        })
     });
 }
 
@@ -135,33 +135,47 @@ That fought with us upon Saint Crispin's day.
     .into()
 }
 
-#[bench]
-fn string_msg(b: &mut Bencher) {
-    use cdr::{self, CdrBe, Infinite};
+fn string_msg(b: &mut Criterion) {
+    use cdr::{CdrBe, Infinite};
 
     let msg = compose_string_msg();
-    b.iter(|| {
-        let encoded = cdr::serialize::<_, _, CdrBe>(&msg, Infinite).unwrap();
-        let _decoded = cdr::deserialize::<String>(&encoded[..]).unwrap();
+    b.bench_function("string msg", |b| {
+        b.iter(|| {
+            let encoded = cdr::serialize::<_, _, CdrBe>(&msg, Infinite).unwrap();
+            let _decoded = cdr::deserialize::<String>(&encoded[..]).unwrap();
+        })
     });
 }
 
-#[bench]
-fn string_msg_without_encapsulation(b: &mut Bencher) {
-    use cdr::{self, BigEndian, Infinite};
+fn string_msg_without_encapsulation(b: &mut Criterion) {
+    use cdr::{BigEndian, Infinite};
 
     let msg = compose_string_msg();
-    b.iter(|| {
-        let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
-        let _decoded = cdr::de::deserialize_data::<String, BigEndian>(&encoded[..]).unwrap();
+    b.bench_function("string msg without encapsulation", |b| {
+        b.iter(|| {
+            let encoded = cdr::ser::serialize_data::<_, _, BigEndian>(&msg, Infinite).unwrap();
+            let _decoded = cdr::de::deserialize_data::<String, BigEndian>(&encoded[..]).unwrap();
+        })
     });
 }
 
-#[bench]
-fn string_msg_bincode(b: &mut Bencher) {
+fn string_msg_bincode(b: &mut Criterion) {
     let msg = compose_string_msg();
-    b.iter(|| {
-        let encoded = bincode::serialize(&msg).unwrap();
-        let _decoded = bincode::deserialize::<String>(&encoded[..]).unwrap();
+    b.bench_function("string msg bincode", |b| {
+        b.iter(|| {
+            let encoded = bincode::serialize(&msg).unwrap();
+            let _decoded = bincode::deserialize::<String>(&encoded[..]).unwrap();
+        })
     });
 }
+
+criterion_group!(
+    benches,
+    lidar_point_msg,
+    lidar_point_msg_without_encapsulation,
+    lidar_point_msg_bincode,
+    string_msg,
+    string_msg_without_encapsulation,
+    string_msg_bincode
+);
+criterion_main!(benches);
