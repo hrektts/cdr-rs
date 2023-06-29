@@ -122,32 +122,39 @@ impl<'a, S> ser::Serializer for &'a mut SizeChecker<S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
+    type SerializeMap = SizeCompound<'a, S>;
     type SerializeSeq = SizeCompound<'a, S>;
+    type SerializeStruct = SizeCompound<'a, S>;
+    type SerializeStructVariant = SizeCompound<'a, S>;
     type SerializeTuple = SizeCompound<'a, S>;
     type SerializeTupleStruct = SizeCompound<'a, S>;
     type SerializeTupleVariant = SizeCompound<'a, S>;
-    type SerializeMap = SizeCompound<'a, S>;
-    type SerializeStruct = SizeCompound<'a, S>;
-    type SerializeStructVariant = SizeCompound<'a, S>;
+
+    impl_serialize_value! { serialize_i8(i8) }
+
+    impl_serialize_value! { serialize_i16(i16) }
+
+    impl_serialize_value! { serialize_i32(i32) }
+
+    impl_serialize_value! { serialize_i64(i64) }
+
+    impl_serialize_value! { serialize_u8(u8) }
+
+    impl_serialize_value! { serialize_u16(u16) }
+
+    impl_serialize_value! { serialize_u32(u32) }
+
+    impl_serialize_value! { serialize_u64(u64) }
+
+    impl_serialize_value! { serialize_f32(f32) }
+
+    impl_serialize_value! { serialize_f64(f64) }
 
     fn serialize_bool(self, _v: bool) -> Result<Self::Ok> {
         self.add_value(0u8)
     }
-
-    impl_serialize_value! { serialize_i8(i8) }
-    impl_serialize_value! { serialize_i16(i16) }
-    impl_serialize_value! { serialize_i32(i32) }
-    impl_serialize_value! { serialize_i64(i64) }
-
-    impl_serialize_value! { serialize_u8(u8) }
-    impl_serialize_value! { serialize_u16(u16) }
-    impl_serialize_value! { serialize_u32(u32) }
-    impl_serialize_value! { serialize_u64(u64) }
-
-    impl_serialize_value! { serialize_f32(f32) }
-    impl_serialize_value! { serialize_f64(f64) }
 
     fn serialize_char(self, _v: char) -> Result<Self::Ok> {
         self.add_size(1)
@@ -274,8 +281,8 @@ impl<'a, S> ser::SerializeSeq for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -295,8 +302,8 @@ impl<'a, S> ser::SerializeTuple for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -316,8 +323,8 @@ impl<'a, S> ser::SerializeTupleStruct for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -337,8 +344,8 @@ impl<'a, S> ser::SerializeTupleVariant for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -358,8 +365,8 @@ impl<'a, S> ser::SerializeMap for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
@@ -387,8 +394,8 @@ impl<'a, S> ser::SerializeStruct for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
@@ -408,8 +415,8 @@ impl<'a, S> ser::SerializeStructVariant for SizeCompound<'a, S>
 where
     S: SizeLimit,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>

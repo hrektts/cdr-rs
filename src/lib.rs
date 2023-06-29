@@ -1,4 +1,5 @@
-//! A serialization/deserialization implementation for Common Data Representation.
+//! A serialization/deserialization implementation for Common Data
+//! Representation.
 //!
 //! # Examples
 //!
@@ -15,15 +16,16 @@
 //! #[derive(Deserialize, Serialize, PartialEq)]
 //! struct Polygon(Vec<Point>);
 //!
-//!     let triangle = Polygon(vec![Point { x: -1.0, y: -1.0 },
-//!                                 Point { x: 1.0, y: -1.0 },
-//!                                 Point { x: 0.0, y: 0.73 }]);
+//! let triangle = Polygon(vec![
+//!     Point { x: -1.0, y: -1.0 },
+//!     Point { x: 1.0, y: -1.0 },
+//!     Point { x: 0.0, y: 0.73 },
+//! ]);
 //!
-//!     let encoded = cdr::serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
-//!     let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
+//! let encoded = cdr::serialize::<_, _, CdrBe>(&triangle, Infinite).unwrap();
+//! let decoded = cdr::deserialize::<Polygon>(&encoded[..]).unwrap();
 //!
-//!     assert!(triangle == decoded);
-
+//! assert!(triangle == decoded);
 //! ```
 
 #![deny(warnings, clippy::all)]
@@ -45,10 +47,10 @@ pub mod ser;
 pub use crate::ser::Serializer;
 
 pub mod size;
+use std::io::{Read, Write};
+
 #[doc(inline)]
 pub use crate::size::{Bounded, Infinite, SizeLimit};
-
-use std::io::{Read, Write};
 
 /// Returns the size that an object would be if serialized with a encapsulation.
 pub fn calc_serialized_size<T>(value: &T) -> u64
@@ -74,7 +76,8 @@ where
     }
 }
 
-/// Serializes a serializable object into a `Vec` of bytes with the encapsulation.
+/// Serializes a serializable object into a `Vec` of bytes with the
+/// encapsulation.
 pub fn serialize<T, S, C>(value: &T, size_limit: S) -> Result<Vec<u8>>
 where
     T: serde::Serialize + ?Sized,

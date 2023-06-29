@@ -5,9 +5,9 @@ use std::{self, io::Write, marker::PhantomData};
 use byteorder::{ByteOrder, WriteBytesExt};
 use serde::ser;
 
-use crate::error::{Error, Result};
-use crate::size::{
-    calc_serialized_data_size, calc_serialized_data_size_bounded, Infinite, SizeLimit,
+use crate::{
+    error::{Error, Result},
+    size::{calc_serialized_data_size, calc_serialized_data_size_bounded, Infinite, SizeLimit},
 };
 
 /// A serializer that writes values into a buffer.
@@ -45,8 +45,9 @@ where
     }
 
     fn write_padding_of<T>(&mut self) -> Result<()> {
-        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte boundaries
-        // Instead of using the slow modulo operation '%', the faster bit-masking is used
+        // Calculate the required padding to align with 1-byte, 2-byte, 4-byte, 8-byte
+        // boundaries Instead of using the slow modulo operation '%', the faster
+        // bit-masking is used
         const PADDING: [u8; 8] = [0; 8];
         let alignment = std::mem::size_of::<T>();
         let rem_mask = alignment - 1; // mask like 0x0, 0x1, 0x3, 0x7
@@ -84,15 +85,31 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
+    type SerializeMap = Compound<'a, W, E>;
     type SerializeSeq = Compound<'a, W, E>;
+    type SerializeStruct = Compound<'a, W, E>;
+    type SerializeStructVariant = Compound<'a, W, E>;
     type SerializeTuple = Compound<'a, W, E>;
     type SerializeTupleStruct = Compound<'a, W, E>;
     type SerializeTupleVariant = Compound<'a, W, E>;
-    type SerializeMap = Compound<'a, W, E>;
-    type SerializeStruct = Compound<'a, W, E>;
-    type SerializeStructVariant = Compound<'a, W, E>;
+
+    impl_serialize_value! { serialize_i16(i16) = write_i16() }
+
+    impl_serialize_value! { serialize_i32(i32) = write_i32() }
+
+    impl_serialize_value! { serialize_i64(i64) = write_i64() }
+
+    impl_serialize_value! { serialize_u16(u16) = write_u16() }
+
+    impl_serialize_value! { serialize_u32(u32) = write_u32() }
+
+    impl_serialize_value! { serialize_u64(u64) = write_u64() }
+
+    impl_serialize_value! { serialize_f32(f32) = write_f32() }
+
+    impl_serialize_value! { serialize_f64(f64) = write_f64() }
 
     fn serialize_bool(self, v: bool) -> Result<Self::Ok> {
         self.set_pos_of::<bool>()?;
@@ -104,21 +121,10 @@ where
         self.writer.write_i8(v).map_err(Into::into)
     }
 
-    impl_serialize_value! { serialize_i16(i16) = write_i16() }
-    impl_serialize_value! { serialize_i32(i32) = write_i32() }
-    impl_serialize_value! { serialize_i64(i64) = write_i64() }
-
     fn serialize_u8(self, v: u8) -> Result<Self::Ok> {
         self.set_pos_of::<u8>()?;
         self.writer.write_u8(v).map_err(Into::into)
     }
-
-    impl_serialize_value! { serialize_u16(u16) = write_u16() }
-    impl_serialize_value! { serialize_u32(u32) = write_u32() }
-    impl_serialize_value! { serialize_u64(u64) = write_u64() }
-
-    impl_serialize_value! { serialize_f32(f32) = write_f32() }
-    impl_serialize_value! { serialize_f64(f64) = write_f64() }
 
     fn serialize_char(self, v: char) -> Result<Self::Ok> {
         if !v.is_ascii() {
@@ -263,8 +269,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -285,8 +291,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_element<T>(&mut self, value: &T) -> Result<()>
@@ -307,8 +313,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -329,8 +335,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, value: &T) -> Result<()>
@@ -351,8 +357,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_key<T>(&mut self, key: &T) -> Result<()>
@@ -381,8 +387,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
@@ -403,8 +409,8 @@ where
     W: Write,
     E: ByteOrder,
 {
-    type Ok = ();
     type Error = Error;
+    type Ok = ();
 
     #[inline]
     fn serialize_field<T>(&mut self, _key: &'static str, value: &T) -> Result<()>
@@ -460,8 +466,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use byteorder::{BigEndian, LittleEndian};
+
+    use super::*;
 
     #[test]
     fn serialize_octet() {

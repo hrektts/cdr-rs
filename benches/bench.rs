@@ -3,9 +3,8 @@
 
 extern crate test;
 
-use test::Bencher;
-
 use serde_derive::{Deserialize, Serialize};
+use test::Bencher;
 
 // cf. https://polysync.io/download/polysync-safety_and_serialization.pdf
 #[repr(C)]
