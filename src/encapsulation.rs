@@ -5,11 +5,8 @@ pub const ENCAPSULATION_HEADER_SIZE: u64 = 4;
 /// Data encapsulation scheme identifiers.
 pub trait Encapsulation {
     type E: ByteOrder;
-
-    fn id() -> [u8; 2];
-    fn option() -> [u8; 2] {
-        [0; 2]
-    }
+    const ID: [u8; 2];
+    const OPTION: [u8; 2] = [0; 2];
 }
 
 /// OMG CDR big-endian encapsulation.
@@ -18,10 +15,7 @@ pub enum CdrBe {}
 
 impl Encapsulation for CdrBe {
     type E = BigEndian;
-
-    fn id() -> [u8; 2] {
-        [0, 0]
-    }
+    const ID: [u8; 2] = [0, 0];
 }
 
 /// OMG CDR little-endian encapsulation.
@@ -30,10 +24,7 @@ pub enum CdrLe {}
 
 impl Encapsulation for CdrLe {
     type E = LittleEndian;
-
-    fn id() -> [u8; 2] {
-        [0, 1]
-    }
+    const ID: [u8; 2] = [0, 1];
 }
 
 /// ParameterList encapsulated using OMG CDR big-endian encapsulation.
@@ -42,10 +33,7 @@ pub enum PlCdrBe {}
 
 impl Encapsulation for PlCdrBe {
     type E = BigEndian;
-
-    fn id() -> [u8; 2] {
-        [0, 2]
-    }
+    const ID: [u8; 2] = [0, 2];
 }
 
 /// ParameterList encapsulated using OMG CDR little-endian encapsulation.
@@ -54,10 +42,7 @@ pub enum PlCdrLe {}
 
 impl Encapsulation for PlCdrLe {
     type E = LittleEndian;
-
-    fn id() -> [u8; 2] {
-        [0, 3]
-    }
+    const ID: [u8; 2] = [0, 3];
 }
 
 #[cfg(test)]
@@ -68,19 +53,19 @@ mod tests {
     fn test_constant() {
         assert_eq!(
             ENCAPSULATION_HEADER_SIZE,
-            (CdrBe::id().len() + CdrBe::option().len()) as u64
+            (CdrBe::ID.len() + CdrBe::OPTION.len()) as u64
         );
         assert_eq!(
             ENCAPSULATION_HEADER_SIZE,
-            (CdrLe::id().len() + CdrLe::option().len()) as u64
+            (CdrLe::ID.len() + CdrLe::OPTION.len()) as u64
         );
         assert_eq!(
             ENCAPSULATION_HEADER_SIZE,
-            (PlCdrBe::id().len() + PlCdrBe::option().len()) as u64
+            (PlCdrBe::ID.len() + PlCdrBe::OPTION.len()) as u64
         );
         assert_eq!(
             ENCAPSULATION_HEADER_SIZE,
-            (PlCdrLe::id().len() + PlCdrLe::option().len()) as u64
+            (PlCdrLe::ID.len() + PlCdrLe::OPTION.len()) as u64
         );
     }
 }

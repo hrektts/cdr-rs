@@ -113,8 +113,8 @@ where
 
     let mut serializer = Serializer::<_, C::E>::new(writer);
 
-    serde::Serialize::serialize(&C::id(), &mut serializer)?;
-    serde::Serialize::serialize(&C::option(), &mut serializer)?;
+    serde::Serialize::serialize(&C::ID, &mut serializer)?;
+    serde::Serialize::serialize(&C::OPTION, &mut serializer)?;
     serializer.reset_pos();
     serde::Serialize::serialize(value, &mut serializer)
 }
