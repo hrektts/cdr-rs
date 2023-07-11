@@ -349,11 +349,11 @@ where
         Err(Error::TypeNotSupported)
     }
 
-    fn deserialize_ignored_any<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
     where
         V: de::Visitor<'de>,
     {
-        Err(Error::TypeNotSupported)
+        visitor.visit_bool(true)
     }
 
     fn is_human_readable(&self) -> bool {
