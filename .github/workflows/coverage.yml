@@ -14,7 +14,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - uses: taiki-e/install-action@cargo-llvm-cov
       - run: cargo llvm-cov --doctests --lcov --output-path lcov.info
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           files: lcov.info
           fail_ci_if_error: true
